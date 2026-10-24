@@ -1,6 +1,7 @@
 ---
 title: Example Study
 category: other
+display: panel
 summary: Placeholder used to verify the site pipeline; removed once real studies land.
 verdict: skip
 ---
