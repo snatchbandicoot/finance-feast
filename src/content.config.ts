@@ -8,6 +8,8 @@ const studies = defineCollection({
     aliases: z.array(z.string()).default([]),
     category: z.enum(['trend', 'momentum', 'volatility', 'volume', 'other']),
     summary: z.string(),
+    display: z.enum(['overlay', 'panel']),
+    inputs: z.array(z.object({ name: z.string(), default: z.union([z.string(), z.number()]) })).default([]),
     verdict: z.enum(['essential', 'situational', 'redundant', 'skip']),
     status: z.enum(['draft', 'reviewed']).default('draft'),
     platform: z.string().optional(),

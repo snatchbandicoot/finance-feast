@@ -13,5 +13,6 @@ const { Content } = await render(entry);
   <h1>{entry.data.title}</h1>
   {entry.data.status === 'draft' && <p class="banner">Draft: not yet reviewed.</p>}
   {entry.data.platform && <p class="banner">Specific to {entry.data.platform}.</p>}
+  <p><small>{entry.data.category} · drawn as {entry.data.display === 'overlay' ? 'an overlay on price' : 'a separate panel'}{entry.data.inputs.length > 0 && ` · inputs: ${entry.data.inputs.map((i) => `${i.name} = ${i.default}`).join(', ')}`}</small></p>
   <Content />
 </Base>
