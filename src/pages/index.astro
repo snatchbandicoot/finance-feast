@@ -1,0 +1,14 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const studies = (await getCollection('studies')).sort((a, b) => a.data.title.localeCompare(b.data.title));
+---
+<Base title="Studies Library">
+  <h1>Studies Library</h1>
+  <ul>
+    {studies.map((s) => (
+      <li><a href={`${base}/studies/${s.id}/`}>{s.data.title}</a> <small>({s.data.category})</small> — {s.data.summary}</li>
+    ))}
+  </ul>
+</Base>

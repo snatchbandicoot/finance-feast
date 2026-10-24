@@ -1,0 +1,23 @@
+---
+const { title } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font: 16px/1.6 system-ui, sans-serif; max-width: 46rem; margin: 0 auto; padding: 1rem; }
+      .banner { padding: .5rem .75rem; border: 1px solid; border-radius: 6px; }
+      footer { margin-top: 3rem; font-size: .85rem; opacity: .7; }
+    </style>
+  </head>
+  <body>
+    <header><a href={`${base}/`}>Studies Library</a></header>
+    <main data-pagefind-body><slot /></main>
+    <footer>Educational content, not investment advice.</footer>
+  </body>
+</html>
