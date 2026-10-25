@@ -71,6 +71,12 @@ MEASURES = {
     "kst-macd": lambda h, l, c, v: (ind.kst(c)[0], ind.macd(c)[0]),
     "kst-tsi": lambda h, l, c, v: (ind.kst(c)[0], ind.tsi(c)[0]),
     "dpo-sma-distance": lambda h, l, c, v: (ind.dpo(c, 20), c - ind.sma(c, 20)),
+    "coppock-roc": lambda h, l, c, v: (ind.coppock(c), ind.roc(c, 12)),
+    "fisher-stoch": lambda h, l, c, v: (ind.fisher(h, l)[0], ind.stochastic(h, l, c)[0]),
+    "rmi-rsi": lambda h, l, c, v: (ind.rmi(c, 14, 5), ind.rsi(c, 14)),
+    "elder-ema-distance": lambda h, l, c, v: ((lambda b, e: (b + e) / 2)(*ind.elder_ray(h, l, c, 13)), c - ind.ema(c, 13)),
+    "crsi-rsi14": lambda h, l, c, v: (ind.connors_rsi(c), ind.rsi(c, 14)),
+    "crsi-rsi3": lambda h, l, c, v: (ind.connors_rsi(c), ind.rsi(c, 3)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
 }
 
@@ -91,6 +97,10 @@ def _id_cmo_cutler(h, l, c, v):
 def _id_ppo_macd(h, l, c, v):
     slow = c.ewm(span=26, adjust=False).mean()
     return (ind.ppo(c)[0] * slow / 100 - ind.macd(c)[0]).abs().max()
+
+
+def _id_rmi_rsi(h, l, c, v):
+    return (ind.rmi(c, 14, 1) - ind.rsi(c, 14)).abs().max()
 
 
 def _id_aroon_donchian(h, l, c, v):
@@ -115,6 +125,7 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "rmi-rsi-momentum-1": _id_rmi_rsi,
 }
 
 # ---- the pairs: (declaring study, other study) -> strength, identity check, correlation measure ----------------
@@ -147,6 +158,11 @@ PAIRS = {
     ("true-strength-index", "macd"): dict(strength="near", identity=None, corr="tsi-macd"),
     ("know-sure-thing", "macd"): dict(strength="near", identity=None, corr="kst-macd"),
     ("know-sure-thing", "true-strength-index"): dict(strength="partial", identity=None, corr="kst-tsi"),
+    ("coppock-curve", "rate-of-change"): dict(strength="partial", identity=None, corr="coppock-roc"),
+    ("fisher-transform", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="fisher-stoch"),
+    ("relative-momentum-index", "relative-strength-index"): dict(strength="partial", identity="rmi-rsi-momentum-1", corr="rmi-rsi"),
+    ("elder-ray", "exponential-moving-average"): dict(strength="near", identity=None, corr="elder-ema-distance"),
+    ("connors-rsi", "relative-strength-index"): dict(strength="partial", identity=None, corr="crsi-rsi3"),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -183,6 +199,12 @@ QUOTES = [
     ("know-sure-thing", 2, "kst-macd"),
     ("know-sure-thing", 2, "kst-tsi"),
     ("detrended-price-oscillator", 2, "dpo-sma-distance"),
+    ("coppock-curve", 2, "coppock-roc"),
+    ("fisher-transform", 2, "fisher-stoch"),
+    ("relative-momentum-index", 2, "rmi-rsi"),
+    ("elder-ray", 2, "elder-ema-distance"),
+    ("connors-rsi", 2, "crsi-rsi3"),
+    ("connors-rsi", 2, "crsi-rsi14"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),

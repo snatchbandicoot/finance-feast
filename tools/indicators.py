@@ -330,3 +330,55 @@ def kst(close, signal=9):
 
 def dpo(close, n=20):
     return close.shift(n // 2 + 1) - close.rolling(n).mean()
+
+
+def coppock(close, long_roc=14, short_roc=11, wma_n=10):
+    total = 100 * (close / close.shift(long_roc) - 1) + 100 * (close / close.shift(short_roc) - 1)
+    weights = np.arange(1, wma_n + 1)
+    return total.rolling(wma_n).apply(lambda w: (w * weights).sum() / weights.sum(), raw=True)
+
+
+def fisher(high, low, n=10):
+    mid = (high + low) / 2
+    highest, lowest = mid.rolling(n).max(), mid.rolling(n).min()
+    position = 2 * ((mid - lowest) / (highest - lowest).replace(0, np.nan) - 0.5)
+    value, line = 0.0, 0.0
+    out = []
+    for x in position:
+        if np.isnan(x):
+            out.append(np.nan)
+            continue
+        value = max(-0.999, min(0.999, 0.33 * x + 0.67 * value))
+        line = 0.5 * np.log((1 + value) / (1 - value)) + 0.5 * line
+        out.append(line)
+    out = pd.Series(out, index=mid.index)
+    return out, out.shift(1)
+
+
+def rmi(close, n=14, momentum=5):
+    delta = close.diff(momentum)
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1 / n, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / n, adjust=False).mean()
+    return 100 - 100 / (1 + avg_gain / avg_loss)
+
+
+def elder_ray(high, low, close, n=13):
+    trend = close.ewm(span=n, adjust=False).mean()
+    return high - trend, low - trend
+
+
+def connors_rsi(close, rsi_n=3, streak_n=2, rank_n=100):
+    streak = [0.0]
+    for change in close.diff().iloc[1:]:
+        if change > 0:
+            streak.append(streak[-1] + 1 if streak[-1] > 0 else 1.0)
+        elif change < 0:
+            streak.append(streak[-1] - 1 if streak[-1] < 0 else -1.0)
+        else:
+            streak.append(0.0)
+    streak = pd.Series(streak, index=close.index)
+    daily = close.pct_change()
+    rank = daily.rolling(rank_n + 1).apply(lambda w: 100 * (w[:-1] < w[-1]).mean(), raw=True)
+    return (rsi(close, rsi_n) + rsi(streak, streak_n) + rank) / 3

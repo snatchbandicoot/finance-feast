@@ -679,6 +679,69 @@ def chart_dpo(t):
     return fig
 
 
+def chart_coppock(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Coppock Curve (14, 11, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.coppock(C), 60)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Coppock Curve, with the zero line")
+    return fig
+
+
+def chart_fisher(t):
+    line, sig = ind.fisher(H, L)
+    return _osc_two(t, "Fisher Transform (10) on synthetic daily data", line, sig, "Fisher", "Trigger (previous bar)",
+                    "Fisher Transform, with the -2, 0 and +2 lines", levels=(-2, 0, 2))
+
+
+def chart_rmi(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Relative Momentum Index (14, 5) and RSI (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (30, 70):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.rsi(C, 14), 60), color=t["teal"], linewidth=LINE, label="RSI 14", zorder=4)
+    ax2.plot(warm(ind.rmi(C, 14, 5), 60), color=t["pink"], linewidth=LINE, label="RMI (14, 5)", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "RMI and RSI, with the 30 and 70 lines")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["RMI (14, 5)"], by["RSI 14"]], ["RMI (14, 5)", "RSI 14"])
+    return fig
+
+
+def chart_elder(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Elder Ray (13) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax.plot(ind.ema(C, 13), color=t["teal"], linewidth=LINE, label="EMA 13", zorder=4)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, h, l)
+    bull, bear = ind.elder_ray(H, L, C, 13)
+    hline(ax2, t, 0)
+    ax2.bar(bull.index, warm(bull, 30), width=0.8, color=t["pink"], linewidth=0, label="Bull Power (high - EMA)", zorder=3)
+    ax2.bar(bear.index, warm(bear, 30), width=0.8, color=t["teal"], linewidth=0, label="Bear Power (low - EMA)", zorder=3)
+    lim = max(bull.iloc[30:].abs().max(), bear.iloc[30:].abs().max()) * 1.08
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Bull Power and Bear Power, in price units")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_connors(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Connors RSI (3, 2, 100) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (10, 90):
+        hline(ax2, t, y)
+    ax2.plot(ind.connors_rsi(C), color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 10, 50, 90, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Connors RSI, with the 10 and 90 lines (needs 101 bars before its first value)")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -719,6 +782,11 @@ CHARTS = {
     "true-strength-index": chart_tsi,
     "know-sure-thing": chart_kst,
     "detrended-price-oscillator": chart_dpo,
+    "coppock-curve": chart_coppock,
+    "fisher-transform": chart_fisher,
+    "relative-momentum-index": chart_rmi,
+    "elder-ray": chart_elder,
+    "connors-rsi": chart_connors,
 }
 
 if __name__ == "__main__":

@@ -921,6 +921,115 @@ print("ok  worked examples (Stochastic RSI, SMI, TSI, KST, DPO)")
 
 
 # =====================================================================================
+# Batch D: Coppock Curve, Fisher Transform, Relative Momentum Index, Elder Ray, Connors RSI
+# =====================================================================================
+from indicators import connors_rsi, coppock, elder_ray, fisher, rmi
+
+
+def coppock_ref(c, a, b, n):
+    roc_sum = [np.nan] * len(c)
+    for i in range(max(a, b), len(c)):
+        roc_sum[i] = 100 * (c[i] / c[i - a] - 1) + 100 * (c[i] / c[i - b] - 1)
+    out = [np.nan] * len(c)
+    for i in range(len(c)):
+        w = roc_sum[i - n + 1 : i + 1] if i >= n - 1 else []
+        if len(w) == n and not np.isnan(w).any():
+            out[i] = sum((k + 1) * v for k, v in enumerate(w)) / (n * (n + 1) / 2)
+    return np.array(out)
+
+
+def fisher_ref(h, l, n):
+    mid = (h + l) / 2
+    value = line = 0.0
+    out = []
+    for i in range(len(mid)):
+        if i < n - 1:
+            out.append(np.nan)
+            continue
+        window = mid[i - n + 1 : i + 1]
+        top, bottom = max(window), min(window)
+        if top == bottom:
+            out.append(np.nan)
+            continue
+        x = 2 * ((mid[i] - bottom) / (top - bottom) - 0.5)
+        value = 0.33 * x + 0.67 * value
+        value = min(0.999, max(-0.999, value))
+        line = 0.5 * np.log((1 + value) / (1 - value)) + 0.5 * line
+        out.append(line)
+    return np.array(out)
+
+
+def rmi_ref(c, n, k):
+    out = [np.nan] * len(c)
+    ag = al = None
+    for i in range(k, len(c)):
+        ch = c[i] - c[i - k]
+        g, l_ = max(ch, 0.0), max(-ch, 0.0)
+        if ag is None:
+            ag, al = g, l_
+        else:
+            ag = ag * (1 - 1 / n) + g / n
+            al = al * (1 - 1 / n) + l_ / n
+        out[i] = 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
+    return np.array(out)
+
+
+def elder_ref(h, l, c, n):
+    e = ema_ref(c, n)
+    return h - e, l - e
+
+
+def connors_ref(c, rn, sn, pn):
+    streak, run = [0.0], 0.0
+    for i in range(1, len(c)):
+        step = np.sign(c[i] - c[i - 1])
+        run = 0.0 if step == 0 else (run + step if np.sign(run) == step else step)
+        streak.append(run)
+    r1 = rsi_ref_same_seed(c, rn)
+    r2 = rsi_ref_same_seed(np.array(streak), sn)
+    out = [np.nan] * len(c)
+    for i in range(pn + 1, len(c)):
+        today = c[i] / c[i - 1] - 1
+        prior = [c[j] / c[j - 1] - 1 for j in range(i - pn, i)]
+        out[i] = (r1[i] + r2[i] + 100 * sum(1 for x in prior if x < today) / pn) / 3
+    return np.array(out)
+
+
+check("Coppock Curve (14, 11, 10) vs loop", coppock(close, 14, 11, 10), coppock_ref(p, 14, 11, 10), 1e-9)
+fi, fg = fisher(hi, lo, 10)
+fir = fisher_ref(H, L, 10)
+check("Fisher Transform (10) vs loop", fi, fir, 1e-9)
+assert np.allclose(fg.iloc[1:].dropna().to_numpy(), fi.shift(1).iloc[1:].dropna().to_numpy())
+check("Relative Momentum Index (14, 5) vs loop", rmi(close, 14, 5), rmi_ref(p, 14, 5), 1e-9)
+bull, bear = elder_ray(hi, lo, close, 13)
+bu_r, be_r = elder_ref(H, L, p, 13)
+check("Elder Ray bull power vs loop", bull, bu_r, 1e-9)
+check("Elder Ray bear power vs loop", bear, be_r, 1e-9)
+check("Connors RSI (3, 2, 100) vs loop", connors_rsi(close, 3, 2, 100), connors_ref(p, 3, 2, 100), 1e-8)
+
+# properties quoted on the pages
+assert (rmi(close, 14, 1).dropna() - rsi(close, 14).dropna()).abs().max() < 1e-12
+print("ok  RMI with a 1-bar momentum is exactly RSI")
+grow = pd.Series(100 * 1.01 ** np.arange(200))
+assert abs(coppock(grow).iloc[-1] - (100 * (1.01 ** 14 - 1) + 100 * (1.01 ** 11 - 1))) < 1e-9
+print("ok  Coppock on steady 1% growth equals the sum of the two growth rates")
+climb3 = pd.Series(np.arange(200, dtype=float) + 100)
+fclimb = fisher(climb3 + 1, climb3 - 1, 10)[0].iloc[-1]
+assert abs(fclimb - 2 * 0.5 * np.log(1.999 / 0.001)) < 1e-6 and abs(fclimb - 7.6) < 0.01
+print("ok  Fisher Transform tops out near 7.6 (a straight climb), by its 0.999 clip and its half-weight on the prior value")
+assert connors_rsi(close).dropna().between(0, 100).all()
+print("ok  Connors RSI stays in 0..100")
+
+# worked examples quoted on the pages
+assert abs((1 * 10 + 2 * 12 + 3 * 16) / 6 - 13.6667) < 1e-3
+assert abs(0.33 * 0.5 + 0.67 * 0.0 - 0.165) < 1e-12 and abs(0.5 * np.log(1.165 / 0.835) - 0.1664) < 1e-3
+eh = elder_ray(pd.Series([10.0, 10.0]), pd.Series([9.0, 9.0]), pd.Series([9.5, 9.5]), 2)
+assert (eh[0].iloc[-1], eh[1].iloc[-1]) == (0.5, -0.5)
+assert abs((20 + 10 + 60) / 3 - 30) < 1e-12
+print("ok  worked examples (Coppock, Fisher, Elder Ray, Connors RSI)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
