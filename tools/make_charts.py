@@ -1063,6 +1063,73 @@ def chart_volume_profile(t):
     return fig
 
 
+def _single_panel(t, title, series, panel_text, levels=(0,), ylim=None, yticks=None, warm_bars=60):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, title)
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(series, warm_bars)
+    for y in levels:
+        hline(ax2, t, y)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    if ylim is None:
+        lim = x.abs().max() * 1.1
+        ylim = (-lim, lim)
+    ax2.set_ylim(*ylim)
+    if yticks:
+        ax2.set_yticks(yticks)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, panel_text)
+    return fig
+
+
+def chart_momentum(t):
+    return _single_panel(t, "Momentum (10) on synthetic daily data", ind.momentum(C, 10), "Momentum (10), in price points, with the zero line", warm_bars=30)
+
+
+def chart_disparity(t):
+    return _single_panel(t, "Disparity Index (14) on synthetic daily data", ind.disparity_index(C, 14), "Disparity Index (14), percent from the 14-bar EMA", warm_bars=30)
+
+
+def chart_pzo(t):
+    return _single_panel(t, "Price Zone Oscillator (14) on synthetic daily data", ind.price_zone_oscillator(C, 14),
+                         "Price Zone Oscillator (14), with lines at -40, 0 and +40", levels=(-40, 0, 40), warm_bars=30)
+
+
+def chart_stc(t):
+    return _single_panel(t, "Schaff Trend Cycle (10, 23, 50) on synthetic daily data", ind.schaff_trend_cycle(C),
+                         "Schaff Trend Cycle, with the 25 and 75 lines", levels=(25, 75), ylim=(0, 100), yticks=[0, 25, 50, 75, 100], warm_bars=60)
+
+
+def chart_woodie(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Woodie's CCI (14 and 6) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    main, turbo = ind.woodies_cci(H, L, C, 14, 6)
+    for y in (-100, 0, 100):
+        hline(ax2, t, y)
+    ax2.plot(warm(turbo, 30), color=t["teal"], linewidth=1.2, label="Turbo CCI (6)", zorder=4)
+    ax2.plot(warm(main, 30), color=t["pink"], linewidth=LINE, label="CCI (14)", zorder=5)
+    ax2.set_ylim(-250, 250)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Two CCI lines, with the -100, 0 and +100 lines")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["CCI (14)"], by["Turbo CCI (6)"]], ["CCI (14)", "Turbo CCI (6)"])
+    return fig
+
+
+def chart_dss(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Double Smoothed Stochastic (13, 8) and the Stochastic on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (20, 80):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.stochastic(H, L, C)[1], 60), color=t["teal"], linewidth=1.2, label="Stochastic %K (14, 3)", zorder=4)
+    ax2.plot(warm(ind.double_smoothed_stochastic(H, L, C), 60), color=t["pink"], linewidth=LINE, label="Double Smoothed (13, 8)", zorder=5)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 20, 50, 80, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Both oscillators, with the 20 and 80 lines")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["Double Smoothed (13, 8)"], by["Stochastic %K (14, 3)"]], ["Double Smoothed (13, 8)", "Stochastic %K (14, 3)"])
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -1130,6 +1197,12 @@ CHARTS = {
     "price-volume-trend": chart_pvt,
     "balance-of-market-power": chart_bmp,
     "volume-profile": chart_volume_profile,
+    "momentum": chart_momentum,
+    "disparity-index": chart_disparity,
+    "price-zone-oscillator": chart_pzo,
+    "schaff-trend-cycle": chart_stc,
+    "woodies-cci": chart_woodie,
+    "double-smoothed-stochastic": chart_dss,
 }
 
 if __name__ == "__main__":

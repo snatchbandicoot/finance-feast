@@ -94,6 +94,13 @@ MEASURES = {
     "pvt-roc": lambda h, l, c, v: (ind.price_volume_trend(c, v).diff(20), ind.roc(c, 20)),
     "bmp-cmf": lambda h, l, c, v: (ind.balance_of_market_power(_sample_open(), h, l, c), ind.cmf(h, l, c, v, 20)),
     "klinger-co": lambda h, l, c, v: (ind.klinger(h, l, c, v)[0], ind.chaikin_oscillator(h, l, c, v)),
+    "mom-roc": lambda h, l, c, v: (ind.momentum(c, 10), ind.roc(c, 10)),
+    "di-ema-distance": lambda h, l, c, v: (ind.disparity_index(c, 14), c - ind.ema(c, 14)),
+    "stc-stoch": lambda h, l, c, v: (ind.schaff_trend_cycle(c), ind.stochastic(h, l, c)[1]),
+    "stc-macd": lambda h, l, c, v: (ind.schaff_trend_cycle(c), ind.macd(c)[0]),
+    "dss-stoch": lambda h, l, c, v: (ind.double_smoothed_stochastic(h, l, c), ind.stochastic(h, l, c)[1]),
+    "pzo-rsi": lambda h, l, c, v: (ind.price_zone_oscillator(c), ind.rsi(c, 14)),
+    "woodie-6-14": lambda h, l, c, v: ind.woodies_cci(h, l, c),
     "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
     "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
@@ -143,6 +150,10 @@ def _id_vo_ppo(h, l, c, v):
     return (ind.volume_oscillator(v, 5, 10) - ind.ppo(v, 5, 10, 9)[0]).abs().max()
 
 
+def _id_woodie_cci(h, l, c, v):
+    return (ind.woodies_cci(h, l, c, 14, 6)[0] - ind.cci(h, l, c, 14)).abs().max()
+
+
 def _id_aroon_donchian(h, l, c, v):
     up, down, _ = ind.aroon(h, l, 25)
     valid = up.notna()
@@ -165,6 +176,7 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "woodie-cci-14": _id_woodie_cci,
     "volume-oscillator-ppo": _id_vo_ppo,
     "adl-cmf": _id_adl_cmf,
     "chaikin-osc-macd-of-adl": _id_co_macd,
@@ -228,6 +240,12 @@ PAIRS = {
     ("balance-of-market-power", "chaikin-money-flow"): dict(strength="partial", identity=None, corr="bmp-cmf"),
     ("klinger-oscillator", "chaikin-oscillator"): dict(strength="partial", identity=None, corr="klinger-co"),
     ("volume-oscillator", "percentage-price-oscillator"): dict(strength="identical", identity="volume-oscillator-ppo", corr=None),
+    ("momentum", "rate-of-change"): dict(strength="near", identity=None, corr="mom-roc"),
+    ("disparity-index", "exponential-moving-average"): dict(strength="near", identity=None, corr="di-ema-distance"),
+    ("schaff-trend-cycle", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="stc-stoch"),
+    ("double-smoothed-stochastic", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="dss-stoch"),
+    ("price-zone-oscillator", "relative-strength-index"): dict(strength="partial", identity=None, corr="pzo-rsi"),
+    ("woodies-cci", "commodity-channel-index"): dict(strength="identical", identity="woodie-cci-14", corr=None),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -289,7 +307,20 @@ QUOTES = [
     ("price-volume-trend", 3, "pvt-close"),
     ("balance-of-market-power", 2, "bmp-cmf"),
     ("klinger-oscillator", 2, "klinger-co"),
+    ("momentum", 3, "mom-roc"),
+    ("disparity-index", 3, "di-ema-distance"),
+    ("woodies-cci", 2, "woodie-6-14"),
+    ("schaff-trend-cycle", 2, "stc-stoch"),
+    ("schaff-trend-cycle", 2, "stc-macd"),
+    ("double-smoothed-stochastic", 2, "dss-stoch"),
+    ("price-zone-oscillator", 2, "pzo-rsi"),
     ("guides/overlaps", 2, "adx-aroon"),
+    ("guides/overlaps", 3, "mom-roc"),
+    ("guides/overlaps", 3, "di-ema-distance"),
+    ("guides/overlaps", 2, "stc-stoch"),
+    ("guides/overlaps", 2, "stc-macd"),
+    ("guides/overlaps", 2, "dss-stoch"),
+    ("guides/overlaps", 2, "pzo-rsi"),
     ("guides/overlaps", 2, "mcginley-ema-distance"),
     ("guides/overlaps", 2, "wma-sma-distance"),
     ("guides/overlaps", 2, "wma-ema-distance"),

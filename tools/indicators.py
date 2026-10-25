@@ -537,3 +537,54 @@ def volume_profile(high, low, close, volume, bins=24, share=0.7):
             covered += below
     profile = pd.Series(totals.to_numpy(), index=centers)
     return profile, centers[poc], edges[lo_bin], edges[hi_bin + 1]
+
+
+def momentum(close, n=10):
+    return close - close.shift(n)
+
+
+def disparity_index(close, n=14):
+    average = close.ewm(span=n, adjust=False).mean()
+    return 100 * (close - average) / average
+
+
+def price_zone_oscillator(close, n=14):
+    signed = close.where(close.diff() > 0, -close).where(close.diff().notna())
+    return 100 * signed.ewm(span=n, adjust=False).mean() / close.ewm(span=n, adjust=False).mean()
+
+
+def schaff_trend_cycle(close, cycle=10, fast=23, slow=50, factor=0.5):
+    line = close.ewm(span=fast, adjust=False).mean() - close.ewm(span=slow, adjust=False).mean()
+
+    def stochastic_of(x):
+        low, high = x.rolling(cycle).min(), x.rolling(cycle).max()
+        return 100 * (x - low) / (high - low).replace(0, np.nan)
+
+    def smooth(x):
+        out, prev = [], np.nan
+        for value in x:
+            if not np.isnan(value):
+                prev = value if np.isnan(prev) else prev + factor * (value - prev)
+            out.append(prev if not np.isnan(value) else np.nan)
+        return pd.Series(out, index=x.index)
+
+    return smooth(stochastic_of(smooth(stochastic_of(line))))
+
+
+def woodies_cci(high, low, close, main=14, turbo=6):
+    typical = (high + low + close) / 3
+
+    def commodity_channel(n):
+        mean = typical.rolling(n).mean()
+        mean_dev = typical.rolling(n).apply(lambda x: np.abs(x - x.mean()).mean(), raw=True)
+        return (typical - mean) / (0.015 * mean_dev)
+
+    return commodity_channel(main), commodity_channel(turbo)
+
+
+def double_smoothed_stochastic(high, low, close, n=13, smooth=8):
+    raw = 100 * (close - low.rolling(n).min()) / (high.rolling(n).max() - low.rolling(n).min())
+    first = raw.ewm(span=smooth, adjust=False).mean()
+    low2, high2 = first.rolling(n).min(), first.rolling(n).max()
+    second = 100 * (first - low2) / (high2 - low2).replace(0, np.nan)
+    return second.ewm(span=smooth, adjust=False).mean()

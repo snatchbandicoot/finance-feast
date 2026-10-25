@@ -6,10 +6,10 @@ not guessed at.
 
 | Group | Names | What it means |
 |---|---|---|
-| Covered by a page | 66 | One study page here (59 pages). Several names can share a page. |
-| Part of a covered page | 16 | Shown on the page of the study it belongs to (for example +DI and -DI on the ADX page). |
-| Wrappers around a covered study | 22 | The same study with an alert, a crossover, a filter or another timeframe. No page needed. |
-| Could get a page | 175 | Standard studies computable from one price and volume series. |
+| Covered by a page | 72 | One study page here (65 pages). Several names can share a page. |
+| Part of a covered page | 17 | Shown on the page of the study it belongs to (for example +DI and -DI on the ADX page). |
+| Wrappers around a covered study | 25 | The same study with an alert, a crossover, a filter or another timeframe. No page needed. |
+| Could get a page | 165 | Standard studies computable from one price and volume series. |
 | Needs data this site does not have | 48 | Breadth, other symbols, options, your account, open interest, calendars. |
 | Platform-specific or obscure | 45 | Display items, and studies tied to one author or vendor. |
 | Not sure what these are | 16 | Need the owner's input. |
@@ -32,8 +32,10 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Chande Momentum Oscillator](../src/content/studies/chande-momentum-oscillator.md): ChandeMomentumOscillator
 - [Commodity Channel Index](../src/content/studies/commodity-channel-index.md): CCI
 - [Detrended Price Oscillator](../src/content/studies/detrended-price-oscillator.md): DetrendedPriceOsc
+- [Disparity Index](../src/content/studies/disparity-index.md): DisparityIndex
 - [Donchian Channels](../src/content/studies/donchian-channels.md): PriceChannel
 - [Double Exponential Moving Average](../src/content/studies/double-exponential-moving-average.md): DEMA
+- [Double Smoothed Stochastic](../src/content/studies/double-smoothed-stochastic.md): DoubleSmoothedStochastic
 - [Ease of Movement](../src/content/studies/ease-of-movement.md): EaseOfMovement
 - [Elder Ray](../src/content/studies/elder-ray.md): Ray, RayBearPower, RayBullPower
 - [Exponential Moving Average](../src/content/studies/exponential-moving-average.md): MovAvgExponential
@@ -47,6 +49,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Klinger Oscillator](../src/content/studies/klinger-oscillator.md): KlingerOscillator
 - [Linear Regression](../src/content/studies/linear-regression.md): LinearRegCurve
 - [Mass Index](../src/content/studies/mass-index.md): MassIndex
+- [Momentum](../src/content/studies/momentum.md): Momentum
 - [Money Flow Index](../src/content/studies/money-flow-index.md): MoneyFlowIndex
 - [Moving Average Convergence Divergence](../src/content/studies/macd.md): MACD
 - [Moving Average Envelope](../src/content/studies/moving-average-envelope.md): MovAvgEnvelope
@@ -57,10 +60,12 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Pivot Points](../src/content/studies/pivot-points.md): PivotPoints
 - [Positive Volume Index](../src/content/studies/positive-volume-index.md): PositiveVolumeIndex
 - [Price Volume Trend](../src/content/studies/price-volume-trend.md): PriceAndVolumeTrend
+- [Price Zone Oscillator](../src/content/studies/price-zone-oscillator.md): PriceZoneOscillator
 - [Rate of Change](../src/content/studies/rate-of-change.md): RateOfChange
 - [Relative Momentum Index](../src/content/studies/relative-momentum-index.md): RelativeMomentumIndex
 - [Relative Strength Index](../src/content/studies/relative-strength-index.md): RSI
 - [Relative Volatility Index](../src/content/studies/relative-volatility-index.md): RelativeVolatilityIndex
+- [Schaff Trend Cycle](../src/content/studies/schaff-trend-cycle.md): SchaffTrendCycle
 - [Simple Moving Average](../src/content/studies/simple-moving-average.md): SimpleMovingAvg
 - [Standard Deviation](../src/content/studies/standard-deviation.md): StandardDeviation
 - [Stochastic Momentum Index](../src/content/studies/stochastic-momentum-index.md): StochasticMomentumIndex
@@ -77,6 +82,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Vortex Indicator](../src/content/studies/vortex-indicator.md): VortexIndicator
 - [Weighted Moving Average](../src/content/studies/weighted-moving-average.md): MovAvgWeighted
 - [Williams %R](../src/content/studies/williams-percent-r.md): PercentR, WilliamsPercentR
+- [Woodie's CCI](../src/content/studies/woodies-cci.md): WoodiesCCI
 
 ## Part of a covered page
 
@@ -85,6 +91,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Bollinger Bands](../src/content/studies/bollinger-bands.md): BollingerBandwidth, BollingerPercentB
 - [Heikin-Ashi](../src/content/studies/heikin-ashi.md): HeikinAshiDiff
 - [Linear Regression](../src/content/studies/linear-regression.md): LinearRegrIndicator, LinearRegressionSlope, TimeSeriesForecast
+- [Momentum](../src/content/studies/momentum.md): PercentChg
 - [Moving Average Convergence Divergence](../src/content/studies/macd.md): MACDHistogram, MACDTwoLines, MACDWithPrices
 
 ## Wrappers around a covered study
@@ -96,7 +103,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - EMA: LegacyEMA
 - Klinger Oscillator: KlingerHistogram
 - MACD: MACDHistogramCrossover, WeeklyAndDailyMACD
-- Momentum: MomentumCrossover
+- Momentum: MomentumCrossover, MomentumPercent, MomentumPercentDiff, MomentumSMA
 - Money Flow Index: MoneyFlowIndexCrossover
 - PPO: WeeklyAndDailyPPO
 - Parabolic SAR: ParabolicSARCrossover
@@ -110,9 +117,9 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 
 Grouped by theme, which is also a sensible order for new batches.
 
-### Price and momentum (32)
+### Price and momentum (22)
 
-Momentum, MomentumPercent, MomentumPercentDiff, MomentumSMA, PercentChg, DisparityIndex, PriceZoneOscillator, DemandIndex, IntradayMomentumIndex, DoubleSmoothedStochastic, SchaffTrendCycle, StochasticDistanceOsc, StochasticFullDiff, StochasticMACD, ElliotOscillator, AccelerationDecelerationOsc, CCIAverage, ErgodicOsc, DynamicMomentumIndex, SlowRSI, RocketRSI, ForecastOscillator, Impulse, GapMomentum, RelativeRangeIndex, SentimentZoneOscillator, Inertia, Stiffness, UniversalOscillator, WoodiesCCI, PolychromMtm, ElegantOscillator
+DemandIndex, IntradayMomentumIndex, StochasticDistanceOsc, StochasticFullDiff, StochasticMACD, ElliotOscillator, AccelerationDecelerationOsc, CCIAverage, ErgodicOsc, DynamicMomentumIndex, SlowRSI, RocketRSI, ForecastOscillator, Impulse, GapMomentum, RelativeRangeIndex, SentimentZoneOscillator, Inertia, Stiffness, UniversalOscillator, PolychromMtm, ElegantOscillator
 
 ### Moving averages and bands (28)
 
