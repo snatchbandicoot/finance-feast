@@ -31,9 +31,13 @@ It has three parts:
 
 ## Calculation
 
-$$ \text{MACD}_t = \text{EMA}_{12}(P)_t - \text{EMA}_{26}(P)_t $$
+$$
+\text{MACD}_t = \text{EMA}_{12}(P)_t - \text{EMA}_{26}(P)_t
+$$
 
-$$ \text{Signal}_t = \text{EMA}_{9}(\text{MACD})_t \qquad \text{Histogram}_t = \text{MACD}_t - \text{Signal}_t $$
+$$
+\text{Signal}_t = \text{EMA}_{9}(\text{MACD})_t \qquad \text{Histogram}_t = \text{MACD}_t - \text{Signal}_t
+$$
 
 The numbers 12, 26 and 9 are the standard defaults, and they are the lengths of exponential moving averages. See the [exponential moving average](../exponential-moving-average/) page for how those are computed.
 

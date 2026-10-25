@@ -1,0 +1,35 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { allPairs, STRENGTH_LABEL } from '../lib/overlaps';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const guide = await getEntry('guides', 'overlaps');
+if (!guide) throw new Error('missing src/content/guides/overlaps.md');
+const { Content } = await render(guide);
+const pairs = allPairs(await getCollection('studies'));
+---
+<Base title={guide.data.title}>
+  <article data-pagefind-body>
+    <h1>{guide.data.title}</h1>
+    {guide.data.status === 'draft' && <p class="banner">Draft: not yet reviewed.</p>}
+    <Content />
+    <h2>Every overlap, pair by pair</h2>
+    <p><small>Exact identities hold on any data. Correlations are measured on the site's synthetic sample, so read them as direction, not as the exact figure for a real market.</small></p>
+    <table class="pairs">
+      <thead>
+        <tr><th>Studies</th><th>Relationship</th><th>Measured as</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        {pairs.map((p) => (
+          <tr>
+            <td><a href={`${base}/studies/${p.a.id}/`}>{p.a.data.title}</a> and <a href={`${base}/studies/${p.b.id}/`}>{p.b.data.title}</a></td>
+            <td><span class={`tag tag-${p.strength}`}>{STRENGTH_LABEL[p.strength]}</span></td>
+            <td>{p.corr !== undefined ? `correlation ${p.corr.toFixed(2)}` : 'exact'}</td>
+            <td>{p.note}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </article>
+</Base>

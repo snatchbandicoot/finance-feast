@@ -26,7 +26,9 @@ Where a trailing stop should sit if you are following a trend. It tracks the mos
 
 In an uptrend, let $EP$ (the *extreme point*) be the highest high since the trend began, and $AF$ (the *acceleration factor*) start at 0.02. Each new bar:
 
-$$ SAR_t = SAR_{t-1} + AF \cdot (EP - SAR_{t-1}) $$
+$$
+SAR_t = SAR_{t-1} + AF \cdot (EP - SAR_{t-1})
+$$
 
 - Each time a new extreme point is set, $AF$ increases by 0.02, up to a maximum of 0.2.
 - The SAR is never allowed above the lows of the previous two bars.

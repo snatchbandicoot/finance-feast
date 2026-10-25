@@ -10,7 +10,7 @@ when it does. Avoid hype and avoid hedging every sentence.
 - Separate what the math guarantees from what traders believe or hope it implies.
 - Where evidence is weak or contested, say so.
 
-**Math.** Define every symbol. Give a small worked numeric example. Code snippets are short
+**Math.** Put the `$$` markers of a display formula on their own lines. A formula written as `$$ ... $$` on one line renders as small inline math, and the check script rejects it. Define every symbol. Give a small worked numeric example. Code snippets are short
 pandas and must be verified against an independent reference before `status: reviewed`.
 
 **Platforms.** Platform-neutral by default. Mention a platform only when a study exists on that

@@ -27,7 +27,9 @@ Price above a rising average means recent prices are higher than the window's ty
 
 Add the last N closes and divide by N.
 
-$$ \text{SMA}_t = \frac{1}{N}\sum_{i=0}^{N-1} P_{t-i} $$
+$$
+\text{SMA}_t = \frac{1}{N}\sum_{i=0}^{N-1} P_{t-i}
+$$
 
 Here $P_t$ is the close at bar $t$ and $N$ is the length.
 

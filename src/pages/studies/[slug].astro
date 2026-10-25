@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import { overlapsFor, STRENGTH_LABEL } from '../../lib/overlaps';
 
 export async function getStaticPaths() {
   const studies = await getCollection('studies');
@@ -8,6 +9,8 @@ export async function getStaticPaths() {
 }
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const overlaps = overlapsFor(entry.id, await getCollection('studies'));
 const verdictText = {
   essential: 'worth understanding for everyone',
   situational: 'useful in the right conditions',
@@ -22,6 +25,20 @@ const verdictText = {
   {entry.data.platform && <p class="banner">Specific to {entry.data.platform}.</p>}
   <p><small>{entry.data.category} · drawn as {entry.data.display === 'overlay' ? 'an overlay on price' : 'a separate panel'}{entry.data.inputs.length > 0 && ` · inputs: ${entry.data.inputs.map((i) => `${i.name} = ${i.default}`).join(', ')}`}</small></p>
   <p class="verdict"><strong>Verdict: {entry.data.verdict}</strong> — {verdictText}</p>
+  {overlaps.length > 0 && (
+    <aside class="overlap" aria-label="Overlaps with other studies">
+      <strong>Overlaps with other studies</strong>
+      <ul>
+        {overlaps.map((o) => (
+          <li>
+            <span class={`tag tag-${o.strength}`}>{STRENGTH_LABEL[o.strength]}</span>{' '}
+            <a href={`${base}/studies/${o.other.id}/`}>{o.other.data.title}</a>{o.corr !== undefined && <small> (sample correlation {o.corr.toFixed(2)})</small>}{': ' + o.note}
+          </li>
+        ))}
+      </ul>
+      <small>See the <a href={`${base}/overlaps/`}>overlap guide</a> for every pair.</small>
+    </aside>
+  )}
   <Content />
   </article>
 </Base>

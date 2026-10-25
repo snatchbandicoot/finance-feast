@@ -25,11 +25,15 @@ The size of a typical bar, from low to high, extended to include any gap from th
 
 First the **true range** for each bar, the largest of three distances:
 
-$$ TR_t = \max\bigl(H_t - L_t,\ |H_t - C_{t-1}|,\ |L_t - C_{t-1}|\bigr) $$
+$$
+TR_t = \max\bigl(H_t - L_t,\ |H_t - C_{t-1}|,\ |L_t - C_{t-1}|\bigr)
+$$
 
 $H$, $L$ and $C$ are the bar's high, low and close, and $C_{t-1}$ is the previous close. Then smooth it with Wilder's method (an exponential average with $\alpha = 1/N$):
 
-$$ ATR_t = \left(1 - \tfrac{1}{N}\right) ATR_{t-1} + \tfrac{1}{N}\, TR_t $$
+$$
+ATR_t = \left(1 - \tfrac{1}{N}\right) ATR_{t-1} + \tfrac{1}{N}\, TR_t
+$$
 
 **Worked example.** A bar has a high of 12 and a low of 10, and the previous close was 13. The three distances are $12 - 10 = 2$, $|12 - 13| = 1$, and $|10 - 13| = 3$. The true range is 3, the largest. It captures the gap down that the bar's own range misses.
 
@@ -63,7 +67,9 @@ What it does not tell you: whether the next move is up or down, or when volatili
 
 If you risk a fixed amount per trade, and put your stop at $k$ ATRs from your entry, then:
 
-$$ \text{shares} = \frac{\text{risk per trade}}{k \times ATR} $$
+$$
+\text{shares} = \frac{\text{risk per trade}}{k \times ATR}
+$$
 
 For example, risking \$100 with an ATR of \$2 and a stop at 2 ATRs gives $100 / (2 \times 2) = 25$ shares. When volatility doubles, the same risk buys half as many shares. That is the point: the position shrinks in jumpy markets, so the dollar risk stays the same.
 

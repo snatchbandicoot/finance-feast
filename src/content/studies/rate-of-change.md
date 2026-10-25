@@ -9,6 +9,11 @@ inputs:
 verdict: situational
 status: draft
 related: [relative-strength-index, macd, simple-moving-average]
+overlaps:
+  - with: macd
+    strength: partial
+    corr: 0.71
+    note: "Both measure momentum from price levels. ROC compares two prices, and MACD compares two smoothed averages."
 ---
 
 > **In plain English.** How much price has changed over the last N bars, as a percentage. A reading of +5 means price is 5% higher than N bars ago, and −5 means it is 5% lower. It is about the simplest momentum measure there is: one number comparing now with then.
@@ -23,7 +28,9 @@ Momentum in its plainest form: the change in price over a fixed look-back, expre
 
 ## Calculation
 
-$$ ROC_t = 100 \times \left( \frac{P_t}{P_{t-N}} - 1 \right) $$
+$$
+ROC_t = 100 \times \left( \frac{P_t}{P_{t-N}} - 1 \right)
+$$
 
 $P_t$ is the close and $N$ is the length.
 

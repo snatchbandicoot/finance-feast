@@ -9,6 +9,11 @@ inputs:
 verdict: redundant
 status: draft
 related: [relative-strength-index, rate-of-change, stochastic-oscillator]
+overlaps:
+  - with: relative-strength-index
+    strength: identical
+    corr: 0.85
+    note: "CMO is exactly RSI's unsmoothed form (Cutler's RSI) stretched to a scale of -100 to +100. The sample correlation shown is against the standard, smoothed RSI."
 ---
 
 > **In plain English.** Add up all the up-moves over the last N bars, add up all the down-moves, and ask how much bigger one total is than the other. If every move was up, the reading is +100. If every move was down, it is −100. Zero means up and down were equal. It is the RSI idea on a symmetric scale, with no smoothing, usually credited to Tushar Chande.
@@ -25,13 +30,17 @@ Of all the price movement in the last $N$ bars, how much was upward and how much
 
 Let $SU$ be the sum of all up-moves (the positive close-to-close changes) over the last $N$ bars, and $SD$ the sum of the sizes of all down-moves:
 
-$$ \text{CMO}_t = 100 \times \frac{SU - SD}{SU + SD} $$
+$$
+\text{CMO}_t = 100 \times \frac{SU - SD}{SU + SD}
+$$
 
 **Worked example.** Closes of 10, 12, 11, 14, 12 give four changes: +2, −1, +3, −2. With $N = 4$: $SU = 2 + 3 = 5$ and $SD = 1 + 2 = 3$. Then $\text{CMO} = 100 \times (5 - 3)/(5 + 3) = 25$.
 
 **The link to RSI.** The RSI page mentions a version that uses plain sums in place of Wilder's smoothing, sometimes called Cutler's RSI. That version is $100 \times SU/(SU + SD)$, which is 62.5 for the example above. And:
 
-$$ \text{CMO} = 2 \times \text{Cutler's RSI} - 100 $$
+$$
+\text{CMO} = 2 \times \text{Cutler's RSI} - 100
+$$
 
 For the example, $2 \times 62.5 - 100 = 25$. The check script confirms this identity over hundreds of bars.
 

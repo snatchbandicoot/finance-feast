@@ -31,13 +31,19 @@ The width of the bands comes from the standard deviation of recent closes, so it
 
 With length $N$ (default 20) and multiplier $k$ (default 2):
 
-$$ \text{Middle}_t = \text{SMA}_N(P)_t \qquad \sigma_t = \sqrt{\tfrac{1}{N}\sum_{i=0}^{N-1}\left(P_{t-i} - \text{Middle}_t\right)^2} $$
+$$
+\text{Middle}_t = \text{SMA}_N(P)_t \qquad \sigma_t = \sqrt{\tfrac{1}{N}\sum_{i=0}^{N-1}\left(P_{t-i} - \text{Middle}_t\right)^2}
+$$
 
-$$ \text{Upper}_t = \text{Middle}_t + k\,\sigma_t \qquad \text{Lower}_t = \text{Middle}_t - k\,\sigma_t $$
+$$
+\text{Upper}_t = \text{Middle}_t + k\,\sigma_t \qquad \text{Lower}_t = \text{Middle}_t - k\,\sigma_t
+$$
 
 Two derived readings are common:
 
-$$ \%B = \frac{P - \text{Lower}}{\text{Upper} - \text{Lower}} \qquad \text{Bandwidth} = \frac{\text{Upper} - \text{Lower}}{\text{Middle}} $$
+$$
+\%B = \frac{P - \text{Lower}}{\text{Upper} - \text{Lower}} \qquad \text{Bandwidth} = \frac{\text{Upper} - \text{Lower}}{\text{Middle}}
+$$
 
 %B says where price sits inside the bands (1 at the upper band, 0 at the lower). Bandwidth says how wide the bands are as a share of the average.
 

@@ -29,7 +29,9 @@ Fund managers and execution desks commonly use it as a benchmark: an order fille
 
 For each bar, take the typical price (the average of high, low and close) and multiply it by the bar's volume. Add these up from the start of the session, and divide by the total volume so far:
 
-$$ \text{VWAP}_t = \frac{\sum_{i \le t} TP_i \cdot V_i}{\sum_{i \le t} V_i}, \qquad TP = \frac{H + L + C}{3} $$
+$$
+\text{VWAP}_t = \frac{\sum_{i \le t} TP_i \cdot V_i}{\sum_{i \le t} V_i}, \qquad TP = \frac{H + L + C}{3}
+$$
 
 The sums restart at the beginning of every session.
 

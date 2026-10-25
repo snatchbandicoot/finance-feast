@@ -11,6 +11,11 @@ inputs:
 verdict: situational
 status: draft
 related: [bollinger-bands, average-true-range, exponential-moving-average, donchian-channels]
+overlaps:
+  - with: bollinger-bands
+    strength: partial
+    corr: 0.68
+    note: "Both draw a channel around a moving average. Keltner sets its width from the average true range, and Bollinger from the standard deviation of closes. The correlation shown is between their widths."
 ---
 
 > **In plain English.** A moving average with a channel above and below it. The channel's width is a multiple of the Average True Range, which tracks the size of whole bars (including gaps). Bollinger Bands set their width from how scattered the closing prices are, which reacts faster to a single big move. The Keltner channel is therefore smoother and steadier.
@@ -25,7 +30,9 @@ Where price sits relative to its recent average, in units of typical bar size. A
 
 ## Calculation
 
-$$ \text{Middle}_t = \text{EMA}_N(C)_t \qquad \text{Upper}_t = \text{Middle}_t + k \cdot ATR_M(t) \qquad \text{Lower}_t = \text{Middle}_t - k \cdot ATR_M(t) $$
+$$
+\text{Middle}_t = \text{EMA}_N(C)_t \qquad \text{Upper}_t = \text{Middle}_t + k \cdot ATR_M(t) \qquad \text{Lower}_t = \text{Middle}_t - k \cdot ATR_M(t)
+$$
 
 $N$ is the average's length (default 20), $M$ is the ATR length (default 10) and $k$ is the multiplier (default 2). The ATR and the EMA are described on their own pages. See [Average True Range](../average-true-range/) and [Exponential Moving Average](../exponential-moving-average/).
 
@@ -84,7 +91,7 @@ What it does not tell you: which direction price will go, or whether a move outs
 
 ## Is it useful?
 
-**Situational.** It is a sensible envelope, and it differs from Bollinger Bands in a real way: its width follows bar size and not the scatter of closes, so it is steadier. On the sample data, Keltner's width varied far less than Bollinger's (a standard deviation of 1.3 percentage points of price, against 6.2). But the two are not independent, with a width correlation of 0.69, so using both mostly gives you two views of the same thing. If you already use Bollinger Bands, adding Keltner is useful mainly for the comparison between them.
+**Situational.** It is a sensible envelope, and it differs from Bollinger Bands in a real way: its width follows bar size and not the scatter of closes, so it is steadier. On the sample data, Keltner's width varied far less than Bollinger's (a standard deviation of 1.3 percentage points of price, against 6.2). But the two are not independent, with a width correlation of 0.68, so using both mostly gives you two views of the same thing. If you already use Bollinger Bands, adding Keltner is useful mainly for the comparison between them.
 
 ## Pairs well with / See also
 

@@ -12,6 +12,10 @@ inputs:
 verdict: situational
 status: draft
 related: [donchian-channels, simple-moving-average, average-directional-index, aroon]
+overlaps:
+  - with: donchian-channels
+    strength: partial
+    note: "Tenkan, Kijun and Senkou B are each exactly the middle line of a Donchian channel (of 9, 26 and 52 bars). Senkou A averages the first two."
 ---
 
 > **In plain English.** Five lines that all come from one simple idea: the midpoint between the highest high and lowest low over some window. Two of them (Tenkan and Kijun) act like fast and slow moving averages. Two more are drawn 26 bars into the future, and the shaded area between them is called the cloud. The fifth is today's close drawn 26 bars back. The idea is to read trend, momentum and support and resistance from one chart.
@@ -28,9 +32,13 @@ The position of price relative to the midpoints of its recent ranges over three 
 
 With the standard settings of 9, 26 and 52 bars:
 
-$$ \text{Tenkan}_t = \frac{HH_9 + LL_9}{2} \qquad \text{Kijun}_t = \frac{HH_{26} + LL_{26}}{2} $$
+$$
+\text{Tenkan}_t = \frac{HH_9 + LL_9}{2} \qquad \text{Kijun}_t = \frac{HH_{26} + LL_{26}}{2}
+$$
 
-$$ \text{Senkou A}_t = \frac{\text{Tenkan}_t + \text{Kijun}_t}{2} \qquad \text{Senkou B}_t = \frac{HH_{52} + LL_{52}}{2} $$
+$$
+\text{Senkou A}_t = \frac{\text{Tenkan}_t + \text{Kijun}_t}{2} \qquad \text{Senkou B}_t = \frac{HH_{52} + LL_{52}}{2}
+$$
 
 $HH_n$ and $LL_n$ are the highest high and lowest low over the last $n$ bars. Senkou A and B are then **plotted 26 bars ahead**, and the area between them is the cloud (*kumo*). A fifth line, the lagging span (*Chikou*), is simply today's close **plotted 26 bars back**.
 

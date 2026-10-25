@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install pandas numpy
+      - run: pip install pandas numpy pyyaml
       - run: python tools/verify_studies.py
   build:
     runs-on: ubuntu-latest

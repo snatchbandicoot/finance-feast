@@ -27,13 +27,19 @@ A big gap between +DI and −DI, in either direction, means movement has been lo
 
 Compare each bar with the one before. The up move is $H_t - H_{t-1}$ and the down move is $L_{t-1} - L_t$. The directional movement of the bar is whichever is larger, if it is positive, and zero otherwise:
 
-$$ +DM_t = \begin{cases} H_t - H_{t-1} & \text{if it is larger than } L_{t-1} - L_t \text{ and positive} \\ 0 & \text{otherwise} \end{cases} $$
+$$
++DM_t = \begin{cases} H_t - H_{t-1} & \text{if it is larger than } L_{t-1} - L_t \text{ and positive} \\ 0 & \text{otherwise} \end{cases}
+$$
 
-and $-DM_t$ is the mirror image. Let $TR$ be the true range from the [Average True Range](../average-true-range/) page. Smooth each series with Wilder's method (an exponential average with $\alpha = 1/N$), written $\overline{\cdot}$:
+and $-DM_t$ is the mirror image. Let $TR$ be the true range from the [Average True Range](../average-true-range/) page. Smooth each series with Wilder's method (an exponential average with $\alpha = 1/N$), and write the smoothed version with a bar over it:
 
-$$ +DI = 100 \cdot \frac{\overline{+DM}}{\overline{TR}} \qquad -DI = 100 \cdot \frac{\overline{-DM}}{\overline{TR}} $$
+$$
++DI = 100 \cdot \frac{\overline{+DM}}{\overline{TR}} \qquad {-}DI = 100 \cdot \frac{\overline{-DM}}{\overline{TR}}
+$$
 
-$$ DX = 100 \cdot \frac{\lvert +DI - (-DI) \rvert}{+DI + (-DI)} \qquad ADX = \overline{DX} $$
+$$
+DX = 100 \cdot \frac{\lvert +DI - (-DI) \rvert}{+DI + (-DI)} \qquad ADX = \overline{DX}
+$$
 
 **Worked example.** One bar makes a high of 12 after a previous high of 11, and a low of 10 after a previous low of 9.5. The up move is $12 - 11 = 1$ and the down move is $9.5 - 10 = -0.5$, so $+DM = 1$ and $-DM = 0$.
 

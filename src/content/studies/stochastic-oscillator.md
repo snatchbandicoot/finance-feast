@@ -11,6 +11,11 @@ inputs:
 verdict: situational
 status: draft
 related: [relative-strength-index, simple-moving-average, macd, williams-percent-r]
+overlaps:
+  - with: relative-strength-index
+    strength: partial
+    corr: 0.81
+    note: "Both are 0 to 100 oscillators, but the stochastic measures where the close sits in the recent range, and RSI measures the balance of gains and losses."
 ---
 
 > **In plain English.** Look back over the last N bars and find the highest high and the lowest low. The stochastic tells you where the latest close sits between them, from 0 (at the bottom of the range) to 100 (at the top). Closes near the top of the range score high, closes near the bottom score low. A second, smoother line follows it so you can spot turns.
@@ -31,11 +36,15 @@ This is a different question from the one [RSI](../relative-strength-index/) ask
 
 Over the last $N$ bars, let $HH$ be the highest high and $LL$ the lowest low. The raw reading is:
 
-$$ \text{raw }\%K_t = 100 \times \frac{C_t - LL_t}{HH_t - LL_t} $$
+$$
+\text{raw }\%K_t = 100 \times \frac{C_t - LL_t}{HH_t - LL_t}
+$$
 
 Then two layers of smoothing, with simple moving averages:
 
-$$ \%K_t = \text{SMA}_{3}\!\left(\text{raw }\%K\right)_t \qquad \%D_t = \text{SMA}_{3}\!\left(\%K\right)_t $$
+$$
+\%K_t = \text{SMA}_{3}\!\left(\text{raw }\%K\right)_t \qquad \%D_t = \text{SMA}_{3}\!\left(\%K\right)_t
+$$
 
 The version without the first smoothing step (raw $\%K$ smoothed once to make $\%D$) is called the *fast* stochastic. The version above, with both, is the *slow* (or *full*) stochastic and is the usual default.
 

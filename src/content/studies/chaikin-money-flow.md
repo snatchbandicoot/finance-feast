@@ -9,6 +9,11 @@ inputs:
 verdict: situational
 status: draft
 related: [on-balance-volume, volume-weighted-average-price, relative-strength-index]
+overlaps:
+  - with: on-balance-volume
+    strength: partial
+    corr: 0.84
+    note: "Both split volume by whether price closed strong or weak. OBV uses the direction of the close, and CMF uses the close's position in the bar. The correlation shown is with OBV's 20-bar change."
 ---
 
 > **In plain English.** For each bar, look at where the close landed between the high and the low. A close near the high counts as buying and a close near the low as selling. That share is applied to the bar's volume. Add that up over the last 20 bars, divide by the total volume, and you get a number from −1 (all selling) to +1 (all buying), where 0 is balanced.
@@ -27,11 +32,15 @@ It is a bounded, windowed cousin of [On-Balance Volume](../on-balance-volume/). 
 
 For each bar, the money flow multiplier runs from −1 to +1:
 
-$$ M_t = \frac{(C_t - L_t) - (H_t - C_t)}{H_t - L_t} $$
+$$
+M_t = \frac{(C_t - L_t) - (H_t - C_t)}{H_t - L_t}
+$$
 
 Multiply by volume to get the bar's money flow volume, then sum over the window and divide by the window's total volume:
 
-$$ \text{CMF}_t = \frac{\sum_{i=0}^{N-1} M_{t-i}\,V_{t-i}}{\sum_{i=0}^{N-1} V_{t-i}} $$
+$$
+\text{CMF}_t = \frac{\sum_{i=0}^{N-1} M_{t-i}\,V_{t-i}}{\sum_{i=0}^{N-1} V_{t-i}}
+$$
 
 **Worked example.** One bar has a high of 12, a low of 10, a close of 11.5 and a volume of 100. Its multiplier is $((11.5 - 10) - (12 - 11.5))/2 = 0.5$. A second bar closes at 10.5 with a volume of 300, so its multiplier is $((10.5 - 10) - (12 - 10.5))/2 = -0.5$. Over these two bars, $\text{CMF} = (0.5 \times 100 + (-0.5) \times 300)/(100 + 300) = -100/400 = -0.25$.
 

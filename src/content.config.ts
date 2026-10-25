@@ -14,7 +14,26 @@ const studies = defineCollection({
     status: z.enum(['draft', 'reviewed']).default('draft'),
     platform: z.string().optional(),
     related: z.array(z.string()).default([]),
+    overlaps: z
+      .array(
+        z.object({
+          with: z.string(),
+          strength: z.enum(['identical', 'near', 'partial']),
+          corr: z.number().optional(),
+          note: z.string(),
+        }),
+      )
+      .default([]),
   }),
 });
 
-export const collections = { studies };
+const guides = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/guides' }),
+  schema: z.object({
+    title: z.string(),
+    summary: z.string(),
+    status: z.enum(['draft', 'reviewed']).default('draft'),
+  }),
+});
+
+export const collections = { studies, guides };

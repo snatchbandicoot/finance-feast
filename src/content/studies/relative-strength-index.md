@@ -31,9 +31,13 @@ It uses closes only. It does not know about volume, volatility, or what the mark
 
 Take the change from each close to the next. Split changes into gains (positive ones, otherwise zero) and losses (the size of negative ones, otherwise zero). Smooth each with Wilder's method, an exponential average with $\alpha = 1/N$:
 
-$$ \overline{G}_t = \left(1 - \tfrac{1}{N}\right)\overline{G}_{t-1} + \tfrac{1}{N}\,G_t \qquad \overline{L}_t = \left(1 - \tfrac{1}{N}\right)\overline{L}_{t-1} + \tfrac{1}{N}\,L_t $$
+$$
+\overline{G}_t = \left(1 - \tfrac{1}{N}\right)\overline{G}_{t-1} + \tfrac{1}{N}\,G_t \qquad \overline{L}_t = \left(1 - \tfrac{1}{N}\right)\overline{L}_{t-1} + \tfrac{1}{N}\,L_t
+$$
 
-$$ RS = \frac{\overline{G}}{\overline{L}}, \qquad \text{RSI} = 100 - \frac{100}{1 + RS} = 100 \cdot \frac{\overline{G}}{\overline{G} + \overline{L}} $$
+$$
+RS = \frac{\overline{G}}{\overline{L}}, \qquad \text{RSI} = 100 - \frac{100}{1 + RS} = 100 \cdot \frac{\overline{G}}{\overline{G} + \overline{L}}
+$$
 
 The last form shows what RSI really is: the smoothed gains as a share of all smoothed movement.
 

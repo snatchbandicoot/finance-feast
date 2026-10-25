@@ -9,6 +9,10 @@ inputs:
 verdict: redundant
 status: draft
 related: [stochastic-oscillator, relative-strength-index]
+overlaps:
+  - with: stochastic-oscillator
+    strength: identical
+    note: "Williams %R is the stochastic's raw reading minus 100, so the two always agree. The usual stochastic adds smoothing on top."
 ---
 
 > **In plain English.** Williams %R shows where the latest close sits between the recent highest high and lowest low, from −100 (at the lowest low) to 0 (at the highest high). That is exactly the stochastic oscillator's raw reading, moved onto a negative scale. If you understand the stochastic, you already understand %R.
@@ -23,13 +27,17 @@ Position within a range, just as the [stochastic oscillator](../stochastic-oscil
 
 ## Calculation
 
-$$ \%R_t = -100 \times \frac{HH_t - C_t}{HH_t - LL_t} $$
+$$
+\%R_t = -100 \times \frac{HH_t - C_t}{HH_t - LL_t}
+$$
 
 Here $HH_t$ and $LL_t$ are the highest high and lowest low over the last $N$ bars.
 
 The relation to the stochastic is exact:
 
-$$ \%R = \text{raw stochastic }\%K - 100 $$
+$$
+\%R = \text{raw stochastic }\%K - 100
+$$
 
 **Worked example.** The same numbers as on the stochastic page: highest high 20, lowest low 10, latest close 16. Then $\%R = -100 \times (20 - 16)/(20 - 10) = -40$. The stochastic's raw reading for those numbers is 60, and $60 - 100 = -40$.
 

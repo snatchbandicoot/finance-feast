@@ -9,6 +9,11 @@ inputs:
 verdict: situational
 status: draft
 related: [exponential-moving-average, macd, rate-of-change]
+overlaps:
+  - with: macd
+    strength: partial
+    corr: 0.93
+    note: "TRIX is the slope of a triple-smoothed average, and MACD is the gap between two averages. Both are momentum from exponential averages, and TRIX is smoother and later."
 ---
 
 > **In plain English.** Smooth price with an exponential average, smooth that, and smooth it a third time. Then measure how fast the triple-smoothed line rose or fell in the last bar, as a percentage. The repeated smoothing filters out almost all short-term noise, so TRIX is a very smooth momentum line that crosses zero only rarely. The price of that smoothness is lag.
@@ -25,7 +30,9 @@ The speed of a heavily smoothed price. Three layers of exponential averaging rem
 
 Let $\text{EMA}^{3}$ be an exponential average applied three times in a row, each of length $N$ (see the [Exponential Moving Average](../exponential-moving-average/) page):
 
-$$ \text{EMA}^{3}_t = \text{EMA}_N\!\left(\text{EMA}_N\!\left(\text{EMA}_N(P)\right)\right)_t \qquad \text{TRIX}_t = 100 \times \left( \frac{\text{EMA}^{3}_t}{\text{EMA}^{3}_{t-1}} - 1 \right) $$
+$$
+\text{EMA}^{3}_t = \text{EMA}_N\!\left(\text{EMA}_N\!\left(\text{EMA}_N(P)\right)\right)_t \qquad \text{TRIX}_t = 100 \times \left( \frac{\text{EMA}^{3}_t}{\text{EMA}^{3}_{t-1}} - 1 \right)
+$$
 
 **A sanity check.** If price rises by exactly 1% every bar, the triple-smoothed line also rises 1% per bar once it has settled, so TRIX reads 1.0. The check script confirms this. It also confirms that multiplying every price by 3 leaves TRIX unchanged, since it is a percentage.
 

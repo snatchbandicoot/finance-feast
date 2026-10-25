@@ -23,7 +23,9 @@ The recent trading range, as a pair of price levels and not as a width. It does 
 
 ## Calculation
 
-$$ \text{Upper}_t = \max(H_{t-N+1}, \dots, H_t) \qquad \text{Lower}_t = \min(L_{t-N+1}, \dots, L_t) \qquad \text{Middle}_t = \frac{\text{Upper}_t + \text{Lower}_t}{2} $$
+$$
+\text{Upper}_t = \max(H_{t-N+1}, \dots, H_t) \qquad \text{Lower}_t = \min(L_{t-N+1}, \dots, L_t) \qquad \text{Middle}_t = \frac{\text{Upper}_t + \text{Lower}_t}{2}
+$$
 
 **A breakout is a close beyond the *previous* bar's channel.** The current bar's own high is part of its own channel, so a close can never exceed the same bar's upper line: it can at most reach it. The check script confirms the channel always contains the current bar's high and low.
 

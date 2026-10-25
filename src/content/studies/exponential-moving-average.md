@@ -9,6 +9,11 @@ inputs:
 verdict: situational
 status: draft
 related: [simple-moving-average, relative-strength-index]
+overlaps:
+  - with: simple-moving-average
+    strength: near
+    corr: 0.98
+    note: "Averages of the same length follow price in almost the same way, and the EMA reacts a little sooner. The correlation is measured on how far price sits from each average."
 ---
 
 > **In plain English.** Like a simple moving average, but recent prices count for more, so the line turns sooner. The price of that speed is more false turns. It is a faster dial on the same idea, not new information.
@@ -27,7 +32,9 @@ That is the main practical difference from the [simple moving average](../simple
 
 Each new value blends the newest close with the previous EMA:
 
-$$ \text{EMA}_t = \alpha P_t + (1 - \alpha)\,\text{EMA}_{t-1}, \qquad \alpha = \frac{2}{N + 1} $$
+$$
+\text{EMA}_t = \alpha P_t + (1 - \alpha)\,\text{EMA}_{t-1}, \qquad \alpha = \frac{2}{N + 1}
+$$
 
 $P_t$ is the close, $N$ is the length, and $\alpha$ is the weight given to the newest close. A length of 20 gives $\alpha = 2/21 \approx 0.095$, so each new bar contributes about 9.5% of the value.
 

@@ -10,6 +10,11 @@ inputs:
 verdict: redundant
 status: draft
 related: [macd, percentage-price-oscillator, simple-moving-average]
+overlaps:
+  - with: macd
+    strength: near
+    corr: 0.98
+    note: "Both are a fast average minus a slow average. The Awesome Oscillator uses simple averages of each bar's midpoint, and MACD uses exponential averages of the close."
 ---
 
 > **In plain English.** Take the midpoint of each bar (halfway between its high and low), average the last 5 of them and the last 34 of them, and subtract the slow average from the fast one. Above zero, recent bars have been higher than the longer-term average, and below zero, lower. The bars are colored by whether the value rose or fell from the previous bar. It is usually credited to Bill Williams.
@@ -28,7 +33,9 @@ Because it is built from price levels, it is in **price units**. A reading of 5 
 
 With the midpoint $M_t = (H_t + L_t)/2$:
 
-$$ \text{AO}_t = \text{SMA}_5(M)_t - \text{SMA}_{34}(M)_t $$
+$$
+\text{AO}_t = \text{SMA}_5(M)_t - \text{SMA}_{34}(M)_t
+$$
 
 **Worked example.** With shortened settings of 2 and 4 bars, four bars have midpoints of 9, 11, 13, 12. The fast average of the last two is $(13 + 12)/2 = 12.5$. The slow average of all four is $(9 + 11 + 13 + 12)/4 = 11.25$. So $\text{AO} = 12.5 - 11.25 = 1.25$.
 

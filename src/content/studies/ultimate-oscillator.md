@@ -11,6 +11,11 @@ inputs:
 verdict: situational
 status: draft
 related: [relative-strength-index, stochastic-oscillator, average-true-range]
+overlaps:
+  - with: relative-strength-index
+    strength: partial
+    corr: 0.81
+    note: "Both give a bounded momentum reading. The Ultimate Oscillator blends three windows and counts gaps."
 ---
 
 > **In plain English.** For each bar, it measures how far the close finished *above the bar's low* (counting any gap from the previous close), as a share of the bar's full range. It does this over three windows (7, 14 and 28 bars) and blends the three, giving the shortest the most weight. The result runs from 0 to 100, with 50 as the midpoint. It is usually credited to Larry Williams, who wanted to cut down the false signals a single window gives.
@@ -27,11 +32,15 @@ Using the previous close (not just the bar's own low) is what lets it see gaps, 
 
 ## Calculation
 
-$$ BP_t = C_t - \min(L_t, C_{t-1}) \qquad TR_t = \max(H_t, C_{t-1}) - \min(L_t, C_{t-1}) $$
+$$
+BP_t = C_t - \min(L_t, C_{t-1}) \qquad TR_t = \max(H_t, C_{t-1}) - \min(L_t, C_{t-1})
+$$
 
 For each window length $n$, add up buying pressure and true range and take the ratio:
 
-$$ A_n = \frac{\sum_{i=0}^{n-1} BP_{t-i}}{\sum_{i=0}^{n-1} TR_{t-i}} \qquad \text{UO} = 100 \times \frac{4A_7 + 2A_{14} + A_{28}}{7} $$
+$$
+A_n = \frac{\sum_{i=0}^{n-1} BP_{t-i}}{\sum_{i=0}^{n-1} TR_{t-i}} \qquad \text{UO} = 100 \times \frac{4A_7 + 2A_{14} + A_{28}}{7}
+$$
 
 **Worked example.** One bar has a previous close of 11, a high of 12, a low of 10.5 and a close of 11.8. Then $BP = 11.8 - \min(10.5, 11) = 1.3$ and $TR = \max(12, 11) - 10.5 = 1.5$, so this bar's ratio is $1.3/1.5 \approx 0.87$.
 
