@@ -200,3 +200,340 @@ def ppo(close, fast=12, slow=26, signal=9):
     line = 100 * (close.ewm(span=fast, adjust=False).mean() - slow_ema) / slow_ema
     sig = line.ewm(span=signal, adjust=False).mean()
     return line, sig, line - sig
+
+
+def wma(close, n=20):
+    weights = np.arange(1, n + 1)
+    return close.rolling(n).apply(lambda w: np.dot(w, weights) / weights.sum(), raw=True)
+
+
+def dema(close, n=20):
+    first = close.ewm(span=n, adjust=False).mean()
+    second = first.ewm(span=n, adjust=False).mean()
+    return 2 * first - second
+
+
+def tema(close, n=20):
+    first = close.ewm(span=n, adjust=False).mean()
+    second = first.ewm(span=n, adjust=False).mean()
+    third = second.ewm(span=n, adjust=False).mean()
+    return 3 * first - 3 * second + third
+
+
+def hma(close, n=21):
+    half = n // 2
+    root = round(n ** 0.5)
+    return wma(2 * wma(close, half) - wma(close, n), root)
+
+
+def kama(close, n=10, fast=2, slow=30):
+    change = (close - close.shift(n)).abs()
+    path = close.diff().abs().rolling(n).sum()
+    efficiency = (change / path.replace(0, np.nan)).fillna(0)
+    fast_sc, slow_sc = 2 / (fast + 1), 2 / (slow + 1)
+    smoothing = (efficiency * (fast_sc - slow_sc) + slow_sc) ** 2
+    values = close.to_numpy(dtype=float)
+    out = np.full(len(values), np.nan)
+    out[n] = values[n]
+    for i in range(n + 1, len(values)):
+        out[i] = out[i - 1] + smoothing.iloc[i] * (values[i] - out[i - 1])
+    return pd.Series(out, index=close.index)
+
+
+def mcginley(close, n=14, k=0.6):
+    values = close.to_numpy(dtype=float)
+    out = np.empty(len(values))
+    out[0] = values[0]
+    for i in range(1, len(values)):
+        out[i] = out[i - 1] + (values[i] - out[i - 1]) / (k * n * (values[i] / out[i - 1]) ** 4)
+    return pd.Series(out, index=close.index)
+
+
+def envelope(close, n=20, percent=2.5):
+    middle = close.rolling(n).mean()
+    return middle, middle * (1 + percent / 100), middle * (1 - percent / 100)
+
+
+def linreg(close, n=20):
+    x = np.arange(n)
+    centered = x - x.mean()
+    slope = close.rolling(n).apply(lambda y: (centered * (y - y.mean())).sum() / (centered ** 2).sum(), raw=True)
+    value = close.rolling(n).mean() + slope * (n - 1 - x.mean())
+    return value, slope
+
+
+def supertrend(high, low, close, n=10, k=3):
+    mid = (high + low) / 2
+    width = k * atr(high, low, close, n)
+    basic_up, basic_down = (mid - width).to_numpy(), (mid + width).to_numpy()
+    c = close.to_numpy(dtype=float)
+    up, down, line = basic_up.copy(), basic_down.copy(), np.empty(len(c))
+    trend = 1
+    line[0] = up[0]
+    for i in range(1, len(c)):
+        if c[i - 1] > up[i - 1]:
+            up[i] = max(basic_up[i], up[i - 1])
+        if c[i - 1] < down[i - 1]:
+            down[i] = min(basic_down[i], down[i - 1])
+        if trend == -1 and c[i] > down[i - 1]:
+            trend = 1
+        elif trend == 1 and c[i] < up[i - 1]:
+            trend = -1
+        line[i] = up[i] if trend == 1 else down[i]
+    return pd.Series(line, index=close.index)
+
+
+def vortex(high, low, close, n=14):
+    prev_close = close.shift()
+    true_range = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    plus = (high - low.shift()).abs()
+    minus = (low - high.shift()).abs()
+    total = true_range.rolling(n).sum()
+    return plus.rolling(n).sum() / total, minus.rolling(n).sum() / total
+
+
+def stoch_rsi(close, n=14, smooth_k=3, smooth_d=3):
+    r = rsi(close, n)
+    low, high = r.rolling(n).min(), r.rolling(n).max()
+    raw = 100 * (r - low) / (high - low).replace(0, np.nan)
+    k = raw.rolling(smooth_k).mean()
+    return k, k.rolling(smooth_d).mean()
+
+
+def smi(high, low, close, n=10, smooth1=3, smooth2=3, signal=10):
+    highest, lowest = high.rolling(n).max(), low.rolling(n).min()
+    offset = close - (highest + lowest) / 2
+    span = highest - lowest
+
+    def twice(x):
+        return x.ewm(span=smooth1, adjust=False).mean().ewm(span=smooth2, adjust=False).mean()
+
+    line = 100 * twice(offset) / (twice(span) / 2)
+    return line, line.ewm(span=signal, adjust=False).mean()
+
+
+def tsi(close, long=25, short=13, signal=7):
+    change = close.diff()
+
+    def twice(x):
+        return x.ewm(span=long, adjust=False).mean().ewm(span=short, adjust=False).mean()
+
+    line = 100 * twice(change) / twice(change.abs())
+    return line, line.ewm(span=signal, adjust=False).mean()
+
+
+def kst(close, signal=9):
+    parts = [(10, 10, 1), (15, 10, 2), (20, 10, 3), (30, 15, 4)]
+    line = sum(w * (100 * (close / close.shift(r) - 1)).rolling(s).mean() for r, s, w in parts)
+    return line, line.rolling(signal).mean()
+
+
+def dpo(close, n=20):
+    return close.shift(n // 2 + 1) - close.rolling(n).mean()
+
+
+def coppock(close, long_roc=14, short_roc=11, wma_n=10):
+    total = 100 * (close / close.shift(long_roc) - 1) + 100 * (close / close.shift(short_roc) - 1)
+    weights = np.arange(1, wma_n + 1)
+    return total.rolling(wma_n).apply(lambda w: (w * weights).sum() / weights.sum(), raw=True)
+
+
+def fisher(high, low, n=10):
+    mid = (high + low) / 2
+    highest, lowest = mid.rolling(n).max(), mid.rolling(n).min()
+    position = 2 * ((mid - lowest) / (highest - lowest).replace(0, np.nan) - 0.5)
+    value, line = 0.0, 0.0
+    out = []
+    for x in position:
+        if np.isnan(x):
+            out.append(np.nan)
+            continue
+        value = max(-0.999, min(0.999, 0.33 * x + 0.67 * value))
+        line = 0.5 * np.log((1 + value) / (1 - value)) + 0.5 * line
+        out.append(line)
+    out = pd.Series(out, index=mid.index)
+    return out, out.shift(1)
+
+
+def rmi(close, n=14, momentum=5):
+    delta = close.diff(momentum)
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1 / n, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / n, adjust=False).mean()
+    return 100 - 100 / (1 + avg_gain / avg_loss)
+
+
+def elder_ray(high, low, close, n=13):
+    trend = close.ewm(span=n, adjust=False).mean()
+    return high - trend, low - trend
+
+
+def connors_rsi(close, rsi_n=3, streak_n=2, rank_n=100):
+    streak = [0.0]
+    for change in close.diff().iloc[1:]:
+        if change > 0:
+            streak.append(streak[-1] + 1 if streak[-1] > 0 else 1.0)
+        elif change < 0:
+            streak.append(streak[-1] - 1 if streak[-1] < 0 else -1.0)
+        else:
+            streak.append(0.0)
+    streak = pd.Series(streak, index=close.index)
+    daily = close.pct_change()
+    rank = daily.rolling(rank_n + 1).apply(lambda w: 100 * (w[:-1] < w[-1]).mean(), raw=True)
+    return (rsi(close, rsi_n) + rsi(streak, streak_n) + rank) / 3
+
+
+def historical_volatility(close, n=20, periods_per_year=252):
+    returns = np.log(close / close.shift())
+    return 100 * returns.rolling(n).std(ddof=1) * np.sqrt(periods_per_year)
+
+
+def std_dev(close, n=20):
+    return close.rolling(n).std(ddof=0)
+
+
+def chaikin_volatility(high, low, n=10, change=10):
+    smoothed = (high - low).ewm(span=n, adjust=False).mean()
+    return 100 * (smoothed / smoothed.shift(change) - 1)
+
+
+def relative_volatility(close, std_n=10, n=14):
+    sd = close.rolling(std_n).std(ddof=0)
+    change = close.diff()
+    up = sd.where(change > 0, 0.0).where(sd.notna())
+    down = sd.where(change < 0, 0.0).where(sd.notna())
+    avg_up = up.ewm(alpha=1 / n, adjust=False).mean()
+    avg_down = down.ewm(alpha=1 / n, adjust=False).mean()
+    return 100 * avg_up / (avg_up + avg_down)
+
+
+def mass_index(high, low, n=9, total=25):
+    spread = (high - low).ewm(span=n, adjust=False).mean()
+    ratio = spread / spread.ewm(span=n, adjust=False).mean()
+    return ratio.rolling(total).sum()
+
+
+def choppiness(high, low, close, n=14):
+    prev_close = close.shift()
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    span = high.rolling(n).max() - low.rolling(n).min()
+    return 100 * np.log10(tr.rolling(n).sum() / span) / np.log10(n)
+
+
+def ulcer(close, n=14):
+    drawdown = 100 * (close / close.rolling(n, min_periods=1).max() - 1)
+    return np.sqrt((drawdown ** 2).rolling(n).mean())
+
+
+def pivot_points(high, low, close):
+    """Levels for the NEXT period, from one period's high, low and close."""
+    pivot = (high + low + close) / 3
+    return pivot, 2 * pivot - low, 2 * pivot - high, pivot + (high - low), pivot - (high - low)
+
+
+def heikin_ashi(open_, high, low, close):
+    ha_close = (open_ + high + low + close) / 4
+    ha_open = ha_close.copy()
+    ha_open.iloc[0] = (open_.iloc[0] + close.iloc[0]) / 2
+    for i in range(1, len(close)):
+        ha_open.iloc[i] = (ha_open.iloc[i - 1] + ha_close.iloc[i - 1]) / 2
+    ha_high = pd.concat([high, ha_open, ha_close], axis=1).max(axis=1)
+    ha_low = pd.concat([low, ha_open, ha_close], axis=1).min(axis=1)
+    return ha_open, ha_high, ha_low, ha_close
+
+
+def anchored_vwap(high, low, close, volume, anchor):
+    typical = ((high + low + close) / 3).iloc[anchor:]
+    vol = volume.iloc[anchor:]
+    out = pd.Series(np.nan, index=close.index)
+    out.iloc[anchor:] = (typical * vol).cumsum() / vol.cumsum()
+    return out
+
+
+def accumulation_distribution(high, low, close, volume):
+    position = ((close - low) - (high - close)) / (high - low).replace(0, np.nan)
+    return (position.fillna(0) * volume).cumsum()
+
+
+def chaikin_oscillator(high, low, close, volume, fast=3, slow=10):
+    line = accumulation_distribution(high, low, close, volume)
+    return line.ewm(span=fast, adjust=False).mean() - line.ewm(span=slow, adjust=False).mean()
+
+
+def mfi(high, low, close, volume, n=14):
+    typical = (high + low + close) / 3
+    flow = typical * volume
+    change = typical.diff()
+    positive = flow.where(change > 0, 0.0).rolling(n).sum()
+    negative = flow.where(change < 0, 0.0).rolling(n).sum()
+    return 100 - 100 / (1 + positive / negative)
+
+
+def force_index(close, volume, n=13):
+    return (close.diff() * volume).ewm(span=n, adjust=False).mean()
+
+
+def ease_of_movement(high, low, volume, n=14, scale=1e6):
+    midpoint_move = (high + low) / 2 - (high.shift() + low.shift()) / 2
+    box_ratio = (volume / scale) / (high - low)
+    return (midpoint_move / box_ratio).rolling(n).mean()
+
+
+def klinger(high, low, close, volume, fast=34, slow=55, signal=13):
+    typical = high + low + close
+    trend = np.where(typical > typical.shift(), 1.0, -1.0)
+    spread = (high - low).to_numpy()
+    cumulative = np.zeros(len(close))
+    cumulative[0] = spread[0]
+    for i in range(1, len(close)):
+        same = trend[i] == trend[i - 1]
+        cumulative[i] = (cumulative[i - 1] if same else spread[i - 1]) + spread[i]
+    force = volume * np.abs(2 * spread / cumulative - 1) * trend * 100
+    line = force.ewm(span=fast, adjust=False).mean() - force.ewm(span=slow, adjust=False).mean()
+    return line, line.ewm(span=signal, adjust=False).mean()
+
+
+def volume_oscillator(volume, fast=5, slow=10):
+    slow_avg = volume.ewm(span=slow, adjust=False).mean()
+    return 100 * (volume.ewm(span=fast, adjust=False).mean() - slow_avg) / slow_avg
+
+
+def negative_volume_index(close, volume, start=1000.0):
+    change = close.pct_change().where(volume < volume.shift(), 0.0).fillna(0.0)
+    return start * (1 + change).cumprod()
+
+
+def positive_volume_index(close, volume, start=1000.0):
+    change = close.pct_change().where(volume > volume.shift(), 0.0).fillna(0.0)
+    return start * (1 + change).cumprod()
+
+
+def price_volume_trend(close, volume):
+    return (close.pct_change().fillna(0.0) * volume).cumsum()
+
+
+def balance_of_market_power(open_, high, low, close, n=14):
+    return ((close - open_) / (high - low).replace(0, np.nan)).rolling(n).mean()
+
+
+def volume_profile(high, low, close, volume, bins=24, share=0.7):
+    typical = (high + low + close) / 3
+    edges = np.linspace(low.min(), high.max(), bins + 1)
+    bucket = pd.cut(typical, edges, include_lowest=True, labels=False)
+    totals = volume.groupby(bucket).sum().reindex(range(bins), fill_value=0.0)
+    centers = (edges[:-1] + edges[1:]) / 2
+    poc = int(totals.to_numpy().argmax())
+    lo_bin = hi_bin = poc
+    covered = totals.iloc[poc]
+    while covered < share * totals.sum():
+        below = totals.iloc[lo_bin - 1] if lo_bin > 0 else -1.0
+        above = totals.iloc[hi_bin + 1] if hi_bin < bins - 1 else -1.0
+        if above >= below:
+            hi_bin += 1
+            covered += above
+        else:
+            lo_bin -= 1
+            covered += below
+    profile = pd.Series(totals.to_numpy(), index=centers)
+    return profile, centers[poc], edges[lo_bin], edges[hi_bin + 1]

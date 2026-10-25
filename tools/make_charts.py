@@ -509,6 +509,560 @@ def chart_ppo(t):
     return fig
 
 
+def _ma_versus(t, heading_text, main, main_label, ref, ref_label, lo=170):
+    """A moving average (pink) against a reference average (teal), over price. lo zooms to a turn."""
+    fig, (ax,) = new_fig(t, [1], 4.3)
+    heading(fig, t, heading_text)
+    price_panel(ax, t, lo)
+    ax.plot(main, color=t["pink"], linewidth=LINE, label=main_label, zorder=4)
+    ax.plot(ref, color=t["teal"], linewidth=LINE, label=ref_label, zorder=4)
+    seg = pd.concat([C.loc[lo:], main.loc[lo:], ref.loc[lo:]])
+    pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, h, l)
+    return fig
+
+
+def chart_wma(t):
+    return _ma_versus(t, "WMA 20 versus SMA 20 through a turn", ind.wma(C, 20), "WMA 20", ind.sma(C, 20), "SMA 20")
+
+
+def chart_dema(t):
+    return _ma_versus(t, "DEMA 20 versus EMA 20 through a turn", ind.dema(C, 20), "DEMA 20", ind.ema(C, 20), "EMA 20")
+
+
+def chart_tema(t):
+    return _ma_versus(t, "TEMA 20 versus EMA 20 through a turn", ind.tema(C, 20), "TEMA 20", ind.ema(C, 20), "EMA 20")
+
+
+def chart_hma(t):
+    return _ma_versus(t, "HMA 21 versus WMA 21 through a turn", ind.hma(C, 21), "HMA 21", ind.wma(C, 21), "WMA 21")
+
+
+def chart_kama(t):
+    return _ma_versus(t, "KAMA versus EMA 20 on synthetic daily data", ind.kama(C), "KAMA", ind.ema(C, 20), "EMA 20", lo=0)
+
+
+def chart_mcginley(t):
+    return _ma_versus(t, "McGinley Dynamic versus EMA 14 through a turn", ind.mcginley(C), "McGinley (14)", ind.ema(C, 14), "EMA 14")
+
+
+def chart_envelope(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Moving Average Envelope (20, 2.5%) and Bollinger Bands on synthetic daily data")
+    price_panel(ax, t)
+    m, u, lo_ = ind.envelope(C, 20, 2.5)
+    bm, bu, bl = ind.bollinger(C, 20, 2)
+    ax.fill_between(C.index, lo_, u, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(u, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(lo_, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(m, color=t["pink"], linewidth=LINE, zorder=4)
+    ax.plot(bu, color=t["teal"], linewidth=1.3, zorder=5)
+    ax.plot(bl, color=t["teal"], linewidth=1.3, zorder=5)
+    lo2, hi2 = min(lo_.min(), bl.min()), max(u.max(), bu.max())
+    pad = (hi2 - lo2) * 0.06
+    ax.set_ylim(lo2 - pad, hi2 + pad * 3.2)
+    from matplotlib.lines import Line2D
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], Patch(facecolor=t["pink"], alpha=0.25, linewidth=0), Line2D([], [], color=t["teal"], linewidth=1.3)],
+           [l[0], "Envelope (SMA 20, 2.5% each side)", "Bollinger (20, 2)"], left=True)
+    return fig
+
+
+def chart_linreg(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Linear Regression (20) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    v, slope = ind.linreg(C, 20)
+    ax.plot(v, color=t["pink"], linewidth=LINE, label="Linear regression 20", zorder=4)
+    ax.plot(ind.sma(C, 20), color=t["teal"], linewidth=LINE, label="SMA 20", zorder=4)
+    seg = pd.concat([C, v])
+    pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, [h[0], h[1], h[2]], [l[0], l[1], l[2]])
+    hline(ax2, t, 0)
+    ax2.plot(slope, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = slope.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Slope of the fitted line, in price units per bar")
+    return fig
+
+
+def chart_supertrend(t):
+    from matplotlib.lines import Line2D
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Supertrend (10, 3) on synthetic daily data")
+    price_panel(ax, t)
+    st = ind.supertrend(H, L, C, 10, 3)
+    long = C > st
+    ax.plot(st.where(long), color=t["pink"], linewidth=LINE, zorder=4)
+    ax.plot(st.where(~long), color=t["teal"], linewidth=LINE, zorder=4)
+    seg = pd.concat([C, st]); pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], Line2D([], [], color=t["pink"], linewidth=LINE), Line2D([], [], color=t["teal"], linewidth=LINE)],
+           [l[0], "Supertrend, below price (long)", "Supertrend, above price (short)"], left=True)
+    return fig
+
+
+def chart_vortex(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Vortex Indicator (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    vp, vm = ind.vortex(H, L, C, 14)
+    hline(ax2, t, 1.0)
+    ax2.plot(vp, color=t["pink"], linewidth=LINE, label="VI+", zorder=4)
+    ax2.plot(vm, color=t["teal"], linewidth=LINE, label="VI-", zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Vortex lines VI+ and VI-, with the 1.0 line")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def _osc_two(t, title, line, sig, line_label, sig_label, panel_text, levels=(0,), ylim=None, yticks=None, warm_bars=60):
+    """Price on top, an oscillator line (pink) and its signal line (teal) below, with reference levels."""
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, title)
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    line, sig = warm(line, warm_bars), warm(sig, warm_bars)
+    for y in levels:
+        hline(ax2, t, y)
+    ax2.plot(line, color=t["pink"], linewidth=LINE, label=line_label, zorder=4)
+    ax2.plot(sig, color=t["teal"], linewidth=LINE, label=sig_label, zorder=4)
+    if ylim is None:
+        lim = line.abs().max() * 1.1
+        ylim = (-lim, lim)
+    ax2.set_ylim(*ylim)
+    if yticks:
+        ax2.set_yticks(yticks)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, panel_text)
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_stoch_rsi(t):
+    k, d = ind.stoch_rsi(C)
+    return _osc_two(t, "Stochastic RSI (14, 3, 3) on synthetic daily data", k, d, "%K", "%D",
+                    "Stochastic RSI, with the 20 and 80 lines", levels=(20, 80), ylim=(0, 100), yticks=[0, 20, 50, 80, 100])
+
+
+def chart_smi(t):
+    line, sig = ind.smi(H, L, C)
+    return _osc_two(t, "Stochastic Momentum Index (10, 3, 3) on synthetic daily data", line, sig, "SMI", "Signal (10-bar EMA)",
+                    "Stochastic Momentum Index, with the -40, 0 and +40 lines", levels=(-40, 0, 40), ylim=(-100, 100), yticks=[-100, -40, 0, 40, 100])
+
+
+def chart_tsi(t):
+    line, sig = ind.tsi(C)
+    return _osc_two(t, "True Strength Index (25, 13, 7) on synthetic daily data", line, sig, "TSI", "Signal (7-bar EMA)",
+                    "True Strength Index, with the zero line")
+
+
+def chart_kst(t):
+    line, sig = ind.kst(C)
+    return _osc_two(t, "Know Sure Thing (default settings) on synthetic daily data", line, sig, "KST", "Signal (9-bar average)",
+                    "Know Sure Thing, with the zero line")
+
+
+def chart_dpo(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Detrended Price Oscillator (20) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax.plot(ind.sma(C, 20), color=t["teal"], linewidth=LINE, label="SMA 20", zorder=4)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, h, l)
+    x = warm(ind.dpo(C, 20), 60)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "DPO (20): the close 11 bars ago minus today's SMA 20, in price units")
+    return fig
+
+
+def chart_coppock(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Coppock Curve (14, 11, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.coppock(C), 60)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Coppock Curve, with the zero line")
+    return fig
+
+
+def chart_fisher(t):
+    line, sig = ind.fisher(H, L)
+    return _osc_two(t, "Fisher Transform (10) on synthetic daily data", line, sig, "Fisher", "Trigger (previous bar)",
+                    "Fisher Transform, with the -2, 0 and +2 lines", levels=(-2, 0, 2))
+
+
+def chart_rmi(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Relative Momentum Index (14, 5) and RSI (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (30, 70):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.rsi(C, 14), 60), color=t["teal"], linewidth=LINE, label="RSI 14", zorder=4)
+    ax2.plot(warm(ind.rmi(C, 14, 5), 60), color=t["pink"], linewidth=LINE, label="RMI (14, 5)", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "RMI and RSI, with the 30 and 70 lines")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["RMI (14, 5)"], by["RSI 14"]], ["RMI (14, 5)", "RSI 14"])
+    return fig
+
+
+def chart_elder(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Elder Ray (13) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax.plot(ind.ema(C, 13), color=t["teal"], linewidth=LINE, label="EMA 13", zorder=4)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, h, l)
+    bull, bear = ind.elder_ray(H, L, C, 13)
+    hline(ax2, t, 0)
+    ax2.bar(bull.index, warm(bull, 30), width=0.8, color=t["pink"], linewidth=0, label="Bull Power (high - EMA)", zorder=3)
+    ax2.bar(bear.index, warm(bear, 30), width=0.8, color=t["teal"], linewidth=0, label="Bear Power (low - EMA)", zorder=3)
+    lim = max(bull.iloc[30:].abs().max(), bear.iloc[30:].abs().max()) * 1.08
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Bull Power and Bear Power, in price units")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_connors(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Connors RSI (3, 2, 100) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (10, 90):
+        hline(ax2, t, y)
+    ax2.plot(ind.connors_rsi(C), color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 10, 50, 90, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Connors RSI, with the 10 and 90 lines (needs 101 bars before its first value)")
+    return fig
+
+
+def chart_hv(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Historical Volatility (20, annualized) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.historical_volatility(C, 20), 30)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, x.max() * 1.12)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Historical volatility, in percent per year")
+    return fig
+
+
+def chart_stddev(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Standard Deviation (20) and ATR (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    sd, at = warm(ind.std_dev(C, 20), 30), warm(ind.atr(H, L, C, 14), 30)
+    ax2.plot(sd, color=t["pink"], linewidth=LINE, label="Standard deviation of price (20)", zorder=4)
+    ax2.plot(at, color=t["teal"], linewidth=LINE, label="ATR (14)", zorder=4)
+    ax2.set_ylim(0, max(sd.max(), at.max()) * 1.12)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Both in price units")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_chaikin_vol(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Chaikin Volatility (10, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.chaikin_volatility(H, L, 10, 10), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Chaikin Volatility, percent change in the smoothed daily range over 10 bars")
+    return fig
+
+
+def chart_rvi(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Relative Volatility Index (10, 14) and RSI (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    hline(ax2, t, 50)
+    ax2.plot(warm(ind.rsi(C, 14), 60), color=t["teal"], linewidth=LINE, label="RSI 14", zorder=4)
+    ax2.plot(warm(ind.relative_volatility(C), 60), color=t["pink"], linewidth=LINE, label="RVI (10, 14)", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "RVI and RSI, with the 50 line")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["RVI (10, 14)"], by["RSI 14"]], ["RVI (10, 14)", "RSI 14"])
+    return fig
+
+
+def chart_mass(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Mass Index (9, 25) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.mass_index(H, L), 60)
+    for y in (26.5, 27):
+        hline(ax2, t, y)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(22, 28); ax2.set_yticks([22, 24, 25, 26.5, 27, 28])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Mass Index, with the 26.5 and 27 lines")
+    return fig
+
+
+def chart_choppiness(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Choppiness Index (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (38.2, 61.8):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.choppiness(H, L, C, 14), 30), color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 38.2, 50, 61.8, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Choppiness Index, with the 38.2 and 61.8 lines")
+    return fig
+
+
+def chart_ulcer(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Ulcer Index (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.ulcer(C, 14), 30)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, x.max() * 1.12)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Ulcer Index, in percent drawdown")
+    return fig
+
+
+def _candles(ax, t, o, h, l, c, lo, hi):
+    idx = list(range(lo, hi + 1))
+    for i in idx:
+        up = c.iloc[i] >= o.iloc[i]
+        col = t["teal"] if up else t["pink"]
+        ax.vlines(i, l.iloc[i], h.iloc[i], color=col, linewidth=0.9, zorder=3)
+        ax.bar(i, max(abs(c.iloc[i] - o.iloc[i]), 0.02), bottom=min(o.iloc[i], c.iloc[i]), width=0.7, color=col, linewidth=0, zorder=4)
+
+
+def chart_heikin(t):
+    O = daily["open"]
+    lo, hi = 190, 290
+    ho, hh, hl, hc = ind.heikin_ashi(O, H, L, C)
+    fig, (ax, ax2) = new_fig(t, [1, 1], 6.4)
+    heading(fig, t, "Ordinary and Heikin-Ashi candles, bars 190 to 290 of synthetic daily data")
+    _candles(ax, t, O, H, L, C, lo, hi)
+    _candles(ax2, t, ho, hh, hl, hc, lo, hi)
+    lim = (min(L.loc[lo:hi].min(), hl.loc[lo:hi].min()) - 1, max(H.loc[lo:hi].max(), hh.loc[lo:hi].max()) + 1)
+    for a_ in (ax, ax2):
+        a_.set_ylim(*lim); shade_regimes(a_, t, lo, hi, labels=False)
+    ax.set_xlim(lo - 1, hi + 1); hide_x(ax)
+    x_axis(ax2, t, lo, hi)
+    panel_label(ax, t, "Ordinary candles (teal: close at or above open, pink: below)")
+    panel_label(ax2, t, "Heikin-Ashi candles of the same bars")
+    return fig
+
+
+def chart_pivots(t):
+    fig, (ax,) = new_fig(t, [1], 4.6, top=0.85)
+    heading(fig, t, "Pivot Points from the previous session, on synthetic 5-minute data")
+    s = intraday["session"]
+    ax.plot(intraday["close"], color=t["ink2"], linewidth=PRICE, label="Close", zorder=3)
+    colors = {"P": t["pink"], "R1": t["teal"], "R2": t["teal"], "S1": t["blue"], "S2": t["blue"]}
+    for sess in (1, 2):
+        prev = intraday[s == sess - 1]
+        lv = ind.pivot_points(prev["high"].max(), prev["low"].min(), prev["close"].iloc[-1])
+        idx = intraday.index[s == sess]
+        for name, y in zip(["P", "R1", "S1", "R2", "S2"], lv):
+            ax.hlines(y, idx[0], idx[-1], color=colors[name], linewidth=1.5 if name == "P" else 1.1,
+                      linestyle="-" if name in ("P", "R1", "S1") else (0, (4, 3)), zorder=4)
+            if sess == 1:
+                ax.text(idx[0] + 2, y, name, color=colors[name], fontsize=8, va="bottom", ha="left")
+        ax.axvline(idx[0] - 0.5, color=t["muted"], linewidth=0.8, zorder=1)
+    ax.set_xlim(-0.5, len(intraday) - 0.5)
+    levels = []
+    for sess in (1, 2):
+        prev = intraday[s == sess - 1]
+        levels += list(ind.pivot_points(prev["high"].max(), prev["low"].min(), prev["close"].iloc[-1]))
+    lo_, hi_ = min(intraday["low"].min(), min(levels)), max(intraday["high"].max(), max(levels))
+    pad = (hi_ - lo_) * 0.08
+    ax.set_ylim(lo_ - pad, hi_ + pad)
+    ax.set_xticks([0, 78, 156]); ax.set_xlabel("Bar (synthetic 5-minute data)", color=t["muted"], fontsize=8.5, labelpad=6)
+    from matplotlib.lines import Line2D
+    legend(ax, t, [Line2D([], [], color=t["ink2"], linewidth=PRICE), Line2D([], [], color=t["pink"], linewidth=1.5),
+                   Line2D([], [], color=t["teal"], linewidth=1.1), Line2D([], [], color=t["blue"], linewidth=1.1)],
+           ["Close", "Pivot", "Resistance R1, R2", "Support S1, S2"], left=True)
+    return fig
+
+
+def chart_avwap(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Anchored VWAP from two anchors, on synthetic daily data")
+    price_panel(ax, t, 170)
+    a1 = ind.anchored_vwap(H, L, C, V, 200)
+    a2 = ind.anchored_vwap(H, L, C, V, 249)
+    ax.plot(a1, color=t["pink"], linewidth=LINE, label="Anchored at bar 200 (selloff starts)", zorder=4)
+    ax.plot(a2, color=t["teal"], linewidth=LINE, label="Anchored at bar 249 (price low)", zorder=4)
+    for a_, c_ in ((200, t["pink"]), (249, t["teal"])):
+        ax.plot([a_], [C.iloc[a_]], marker="o", markersize=5, color=c_, zorder=5)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, h, l, left=True)
+    return fig
+
+
+def chart_adl(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Accumulation/Distribution line and On-Balance Volume on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ad = ind.accumulation_distribution(H, L, C, V) / 1e6
+    ob = ind.obv(C, V) / 1e6
+    ax2.plot(ob, color=t["teal"], linewidth=LINE, label="OBV", zorder=4)
+    ax2.plot(ad, color=t["pink"], linewidth=LINE, label="Accumulation/Distribution", zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Both in millions of shares, each starting from zero")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["Accumulation/Distribution"], by["OBV"]], ["Accumulation/Distribution", "OBV"])
+    return fig
+
+
+def chart_chaikin_osc(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Chaikin Oscillator (3, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.chaikin_oscillator(H, L, C, V), 30) / 1e6
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Chaikin Oscillator, in millions of shares")
+    return fig
+
+
+def chart_mfi(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Money Flow Index (14) and RSI (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (20, 80):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.rsi(C, 14), 30), color=t["teal"], linewidth=LINE, label="RSI 14", zorder=4)
+    ax2.plot(ind.mfi(H, L, C, V, 14), color=t["pink"], linewidth=LINE, label="MFI 14", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 20, 50, 80, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "MFI and RSI, with the 20 and 80 lines")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["MFI 14"], by["RSI 14"]], ["MFI 14", "RSI 14"])
+    return fig
+
+
+def chart_force(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Force Index (13) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.force_index(C, V, 13), 30) / 1e6
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Force Index (13), in millions of price-times-share units")
+    return fig
+
+
+def chart_emv(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Ease of Movement (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.ease_of_movement(H, L, V, 14), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Ease of Movement (14), with volume scaled to millions")
+    return fig
+
+
+def chart_klinger(t):
+    line, sig = ind.klinger(H, L, C, V)
+    return _osc_two(t, "Klinger Oscillator (34, 55, 13) on synthetic daily data", line / 1e6, sig / 1e6, "Klinger", "Signal (13-bar EMA)",
+                    "Klinger Oscillator, in millions", warm_bars=60)
+
+
+def chart_volume_osc(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Volume Oscillator (5, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.volume_oscillator(V, 5, 10), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Volume Oscillator, percent difference between a 5-bar and a 10-bar average of volume")
+    return fig
+
+
+def _volume_index(t, title, series, label):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, title)
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax2.plot(1000 * C / C.iloc[0], color=t["ink2"], linewidth=PRICE, label="Price index (close, starting at 1000)", zorder=3)
+    ax2.plot(series, color=t["pink"], linewidth=LINE, label=label, zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Index, starting at 1000")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by[label], by["Price index (close, starting at 1000)"]], [label, "Price index (close, starting at 1000)"])
+    return fig
+
+
+def chart_nvi(t):
+    return _volume_index(t, "Negative Volume Index on synthetic daily data", ind.negative_volume_index(C, V), "Negative Volume Index")
+
+
+def chart_pvi(t):
+    return _volume_index(t, "Positive Volume Index on synthetic daily data", ind.positive_volume_index(C, V), "Positive Volume Index")
+
+
+def chart_pvt(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Price Volume Trend on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax2.plot(ind.price_volume_trend(C, V) / 1e3, color=t["pink"], linewidth=LINE, zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Price Volume Trend, in thousands of shares")
+    return fig
+
+
+def chart_bmp(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Balance of Market Power (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.balance_of_market_power(daily["open"], H, L, C, 14), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(-0.6, 0.6)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Balance of Market Power, from -1 (sellers) to +1 (buyers)")
+    return fig
+
+
+def chart_volume_profile(t):
+    fig = plt.figure(figsize=(8.4, 4.8), facecolor=t["surface"])
+    gs = fig.add_gridspec(1, 2, width_ratios=[3.2, 1], wspace=0.04, left=0.07, right=0.985, top=0.83, bottom=0.10)
+    ax, axh = fig.add_subplot(gs[0]), fig.add_subplot(gs[1], sharey=None)
+    for a_ in (ax, axh):
+        a_.set_facecolor(t["surface"])
+        for side in ("top", "right", "left", "bottom"):
+            a_.spines[side].set_visible(False)
+        a_.grid(axis="y", color=t["grid"], linewidth=0.8); a_.set_axisbelow(True)
+        a_.tick_params(length=0, colors=t["ink2"], labelsize=8.5)
+    heading(fig, t, "Volume Profile (24 price bins, 70% value area) on synthetic daily data")
+    profile, poc, val, vah = ind.volume_profile(H, L, C, V, 24, 0.7)
+    lo_, hi_ = L.min(), H.max()
+    pad = (hi_ - lo_) * 0.04
+    ax.plot(C.index, C, color=t["ink2"], linewidth=PRICE, label="Close", zorder=3)
+    ax.axhspan(val, vah, color=t["teal"], alpha=0.10, linewidth=0, zorder=1)
+    ax.axhline(poc, color=t["pink"], linewidth=LINE, zorder=4)
+    ax.set_ylim(lo_ - pad, hi_ + pad); ax.set_xlim(-0.5, len(C) - 0.5)
+    x_axis(ax, t)
+    width = (hi_ - lo_) / 24
+    inside = (profile.index > val) & (profile.index < vah)
+    axh.barh(profile.index, profile / 1e6, height=width * 0.9, color=t["ink2"], alpha=0.35, linewidth=0, zorder=2)
+    axh.barh(profile.index[inside], profile[inside] / 1e6, height=width * 0.9, color=t["teal"], alpha=0.6, linewidth=0, zorder=3)
+    axh.barh([poc], [profile.loc[poc] / 1e6], height=width * 0.9, color=t["pink"], linewidth=0, zorder=4)
+    axh.set_ylim(lo_ - pad, hi_ + pad); axh.tick_params(labelleft=False)
+    axh.set_xlabel("Volume in bin (millions)", color=t["muted"], fontsize=8.5, labelpad=6)
+    from matplotlib.lines import Line2D
+    legend(ax, t, [Line2D([], [], color=t["ink2"], linewidth=PRICE), Line2D([], [], color=t["pink"], linewidth=LINE),
+                   Patch(facecolor=t["teal"], alpha=0.35, linewidth=0)],
+           ["Close", "Point of control", "Value area (70% of volume)"], left=True)
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -534,6 +1088,48 @@ CHARTS = {
     "ultimate-oscillator": chart_ultimate,
     "chande-momentum-oscillator": chart_cmo,
     "percentage-price-oscillator": chart_ppo,
+    "weighted-moving-average": chart_wma,
+    "double-exponential-moving-average": chart_dema,
+    "triple-exponential-moving-average": chart_tema,
+    "hull-moving-average": chart_hma,
+    "kaufman-adaptive-moving-average": chart_kama,
+    "mcginley-dynamic": chart_mcginley,
+    "moving-average-envelope": chart_envelope,
+    "linear-regression": chart_linreg,
+    "supertrend": chart_supertrend,
+    "vortex-indicator": chart_vortex,
+    "stochastic-rsi": chart_stoch_rsi,
+    "stochastic-momentum-index": chart_smi,
+    "true-strength-index": chart_tsi,
+    "know-sure-thing": chart_kst,
+    "detrended-price-oscillator": chart_dpo,
+    "coppock-curve": chart_coppock,
+    "fisher-transform": chart_fisher,
+    "relative-momentum-index": chart_rmi,
+    "elder-ray": chart_elder,
+    "connors-rsi": chart_connors,
+    "historical-volatility": chart_hv,
+    "standard-deviation": chart_stddev,
+    "chaikin-volatility": chart_chaikin_vol,
+    "relative-volatility-index": chart_rvi,
+    "mass-index": chart_mass,
+    "choppiness-index": chart_choppiness,
+    "ulcer-index": chart_ulcer,
+    "heikin-ashi": chart_heikin,
+    "pivot-points": chart_pivots,
+    "anchored-vwap": chart_avwap,
+    "accumulation-distribution": chart_adl,
+    "chaikin-oscillator": chart_chaikin_osc,
+    "money-flow-index": chart_mfi,
+    "force-index": chart_force,
+    "ease-of-movement": chart_emv,
+    "klinger-oscillator": chart_klinger,
+    "volume-oscillator": chart_volume_osc,
+    "negative-volume-index": chart_nvi,
+    "positive-volume-index": chart_pvi,
+    "price-volume-trend": chart_pvt,
+    "balance-of-market-power": chart_bmp,
+    "volume-profile": chart_volume_profile,
 }
 
 if __name__ == "__main__":

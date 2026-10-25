@@ -6,8 +6,9 @@ The functions under test live in tools/indicators.py, and their code is shown on
 import numpy as np
 import pandas as pd
 
-from indicators import (aroon, adx, atr, awesome, bollinger, cci, cmf, cmo, donchian, ema, ichimoku, keltner, macd, obv,
-                        ppo, psar, roc, rsi, sma, stochastic, trix, ultimate, vwap, williams_r)
+from indicators import (aroon, adx, atr, awesome, bollinger, cci, cmf, cmo, dema, donchian, ema, hma, ichimoku, kama,
+                        keltner, linreg, macd, mcginley, obv, ppo, psar, roc, rsi, sma, stochastic, supertrend, tema, trix, ultimate,
+                        vortex, vwap, williams_r, wma, envelope)
 
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
@@ -616,6 +617,777 @@ print("ok  worked examples (Awesome, TRIX, Ultimate, CMO, PPO)")
 
 
 # =====================================================================================
+# WMA, DEMA, TEMA, HMA, KAMA
+# =====================================================================================
+def wma_ref(p, n):
+    out = [np.nan] * len(p)
+    for i in range(n - 1, len(p)):
+        w = p[i - n + 1 : i + 1]
+        if not np.isnan(w).any():
+            out[i] = sum((k + 1) * w[k] for k in range(n)) / (n * (n + 1) / 2)
+    return np.array(out)
+
+
+def dema_ref(p, n):
+    e1 = ema_ref(p, n)
+    return 2 * e1 - ema_ref(e1, n)
+
+
+def tema_ref(p, n):
+    e1 = ema_ref(p, n)
+    e2 = ema_ref(e1, n)
+    return 3 * e1 - 3 * e2 + ema_ref(e2, n)
+
+
+def hma_ref(p, n):
+    raw = 2 * wma_ref(p, n // 2) - wma_ref(p, n)
+    return wma_ref(raw, round(n ** 0.5))
+
+
+def kama_ref(p, n, fast, slow):
+    fs, ss = 2 / (fast + 1), 2 / (slow + 1)
+    out = [np.nan] * len(p)
+    out[n] = p[n]
+    for i in range(n + 1, len(p)):
+        path = sum(abs(p[k] - p[k - 1]) for k in range(i - n + 1, i + 1))
+        er = 0.0 if path == 0 else abs(p[i] - p[i - n]) / path
+        sc = (er * (fs - ss) + ss) ** 2
+        out[i] = out[i - 1] + sc * (p[i] - out[i - 1])
+    return np.array(out)
+
+
+check("WMA(20) vs loop", wma(close, 20), wma_ref(p, 20), 1e-9)
+check("DEMA(20) vs EMA loops", dema(close, 20), dema_ref(p, 20), 1e-9)
+check("TEMA(20) vs EMA loops", tema(close, 20), tema_ref(p, 20), 1e-9)
+check("HMA(21) vs WMA loops", hma(close, 21), hma_ref(p, 21), 1e-9)
+check("KAMA(10, 2, 30) vs loop", kama(close, 10, 2, 30), kama_ref(p, 10, 2, 30), 1e-9)
+
+# lag on a steady climb (price = bar number): how many bars each average trails price
+climb = pd.Series(np.arange(1000, dtype=float))
+lag = lambda f: climb.iloc[-1] - f(climb).iloc[-1]
+assert abs(lag(lambda c: sma(c, 20)) - 9.5) < 1e-9 and abs(lag(lambda c: ema(c, 20)) - 9.5) < 1e-6
+assert abs(lag(lambda c: wma(c, 20)) - (20 - 1) / 3) < 1e-9
+assert abs(lag(lambda c: dema(c, 20))) < 1e-6 and abs(lag(lambda c: tema(c, 20))) < 1e-6
+assert abs(lag(lambda c: hma(c, 21)) - 2 / 3) < 1e-9
+assert abs(lag(lambda c: kama(c, 10, 2, 30)) - 1.25) < 1e-9  # efficiency 1: alpha = (2/3)^2, lag = (1 - alpha) / alpha
+print("ok  lag on a steady climb: SMA 9.5, EMA 9.5, WMA 6.33, DEMA 0, TEMA 0, HMA 0.67, KAMA 1.25 bars (n = 20, HMA 21)")
+
+# overshoot after a jump from 100 to 110: the cost of low lag
+jump = pd.Series([100.0] * 200 + [110.0] * 200)
+over = lambda f: round(f(jump).iloc[200:].max() - 110, 1)
+assert over(lambda c: ema(c, 20)) == 0 and over(lambda c: wma(c, 20)) == 0 and over(lambda c: kama(c, 10, 2, 30)) == 0
+assert (over(lambda c: dema(c, 20)), over(lambda c: tema(c, 20)), over(lambda c: hma(c, 21))) == (1.2, 1.8, 2.7)
+print("ok  overshoot after a 10-point jump: EMA, WMA, KAMA 0; DEMA 1.2, TEMA 1.8, HMA 2.7 points")
+assert not kama(jump, 10, 2, 30).iloc[10:].isna().any()
+print("ok  KAMA stays defined on perfectly flat data")
+
+# ---- worked examples quoted on the pages --------------------------------------------
+assert abs(wma(pd.Series([10.0, 11, 13]), 3).iloc[-1] - 71 / 6) < 1e-12 and (10 + 11 + 13) / 3 != 71 / 6
+assert 2 * 105 - 103 == 107 and 3 * 105 - 3 * 103 + 101.5 == 107.5
+assert round(21 ** 0.5) == 5 and round(20 ** 0.5) == 4 and 2 * 104 - 100 == 108
+k_up = kama(pd.Series([10.0, 11, 12, 13, 14, 15]), 4, 2, 30)           # efficiency 1: smoothing (2/3)^2
+assert abs(k_up.iloc[5] - (14 + (2 / 3) ** 2 * (15 - 14))) < 1e-12
+k_flat = kama(pd.Series([10.0, 12, 10, 12, 10, 12]), 4, 2, 30)          # efficiency 0: smoothing (2/31)^2
+assert abs(k_flat.iloc[5] - (10 + (2 / 31) ** 2 * (12 - 10))) < 1e-12
+print("ok  worked examples (WMA, DEMA, TEMA, HMA, KAMA)")
+
+
+# =====================================================================================
+# McGinley Dynamic, Moving Average Envelope, Linear Regression, Supertrend, Vortex
+# =====================================================================================
+def mcginley_ref(p, n, k):
+    out = [p[0]]
+    for i in range(1, len(p)):
+        out.append(out[-1] + (p[i] - out[-1]) / (k * n * (p[i] / out[-1]) ** 4))
+    return np.array(out)
+
+
+def envelope_ref(p, n, pct):
+    mid = sma_ref(p, n)
+    return mid, mid * (1 + pct / 100), mid * (1 - pct / 100)
+
+
+def linreg_ref(p, n):
+    value, slope = [np.nan] * len(p), [np.nan] * len(p)
+    x = np.arange(n)
+    for i in range(n - 1, len(p)):
+        m, b = np.polyfit(x, p[i - n + 1 : i + 1], 1)  # least squares, independent of the closed form
+        value[i], slope[i] = m * (n - 1) + b, m
+    return np.array(value), np.array(slope)
+
+
+def vortex_ref(h, l, c, n):
+    tr, vp, vm = [h[0] - l[0]], [np.nan], [np.nan]
+    for i in range(1, len(c)):
+        tr.append(max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])))
+        vp.append(abs(h[i] - l[i - 1]))
+        vm.append(abs(l[i] - h[i - 1]))
+    up, dn = [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(n, len(c)):
+        t = sum(tr[i - n + 1 : i + 1])
+        up[i], dn[i] = sum(vp[i - n + 1 : i + 1]) / t, sum(vm[i - n + 1 : i + 1]) / t
+    return np.array(up), np.array(dn)
+
+
+def supertrend_ref(h, l, c, n, k):
+    """A fresh transcription of the widely used charting-platform definition, written with explicit previous values."""
+    a = atr_ref_same_seed(h, l, c, n)
+    up1 = dn1 = line_prev = None
+    trend = 1
+    out = []
+    for i in range(len(c)):
+        mid = (h[i] + l[i]) / 2
+        up_b, dn_b = mid - k * a[i], mid + k * a[i]
+        if i == 0:
+            up, dn = up_b, dn_b
+        else:
+            up = max(up_b, up1) if c[i - 1] > up1 else up_b
+            dn = min(dn_b, dn1) if c[i - 1] < dn1 else dn_b
+            if trend == -1 and c[i] > dn1:
+                trend = 1
+            elif trend == 1 and c[i] < up1:
+                trend = -1
+        out.append(up if trend == 1 else dn)
+        up1, dn1 = up, dn
+    return np.array(out)
+
+
+check("McGinley Dynamic (14, 0.6) vs loop", mcginley(close, 14, 0.6), mcginley_ref(p, 14, 0.6), 1e-9)
+em, eu, el = envelope(close, 20, 2.5)
+mr, ur, lr_ = envelope_ref(p, 20, 2.5)
+check("Envelope middle vs loop", em, mr, 1e-9)
+check("Envelope upper vs loop", eu, ur, 1e-9)
+check("Envelope lower vs loop", el, lr_, 1e-9)
+lv, ls = linreg(close, 20)
+lvr, lsr = linreg_ref(p, 20)
+check("Linear regression value vs np.polyfit", lv, lvr, 1e-8)
+check("Linear regression slope vs np.polyfit", ls, lsr, 1e-8)
+vip, vim = vortex(hi, lo, close, 14)
+vpr, vmr = vortex_ref(H, L, p, 14)
+check("Vortex VI+ vs loop", vip, vpr, 1e-9)
+check("Vortex VI- vs loop", vim, vmr, 1e-9)
+check("Supertrend (10, 3) vs independent transcription", supertrend(hi, lo, close, 10, 3), supertrend_ref(H, L, p, 10, 3), 1e-9)
+
+# Supertrend: in an up-trend the line sits below the close and never falls; in a down-trend it sits above and never rises
+st = supertrend(hi, lo, close, 10, 3).to_numpy()
+side = np.sign(p - st)
+for i in range(2, len(p)):
+    if side[i] == side[i - 1] and side[i] != 0:
+        assert (st[i] >= st[i - 1] - 1e-12) if side[i] > 0 else (st[i] <= st[i - 1] + 1e-12), f"supertrend ratchet broken at bar {i}"
+print("ok  Supertrend line only moves in the trend's favor between flips")
+
+# properties quoted on the pages
+climb2 = pd.Series(np.arange(1000, dtype=float) + 100)
+assert abs((climb2 - mcginley(climb2)).iloc[-1] - 7.672) < 1e-3
+cover_half = lambda f, s_: int((f(s_).iloc[200:] >= 105).idxmax() - 200) if s_.iloc[-1] > s_.iloc[0] else int((f(s_).iloc[200:] <= 105).idxmax() - 200)
+j_up, j_dn = pd.Series([100.0] * 200 + [110.0] * 200), pd.Series([110.0] * 200 + [100.0] * 200)
+assert (cover_half(mcginley, j_up), cover_half(mcginley, j_dn)) == (7, 3)
+assert (cover_half(lambda c: ema(c, 14), j_up), cover_half(lambda c: ema(c, 14), j_dn)) == (4, 4)
+print("ok  McGinley: 7.67 bars behind a steady climb, and 7 bars to cover half an upward jump but 3 for a downward one (EMA: 4 and 4)")
+lv2, ls2 = linreg(climb2, 20)
+assert (lv2 - climb2).abs().iloc[20:].max() < 1e-9 and abs(ls2.iloc[-1] - 1) < 1e-9
+assert round(linreg(j_up, 20)[0].iloc[200:].max() - 110, 1) == 3.0
+print("ok  Linear regression: zero lag and slope exactly 1 on a straight climb; overshoots a 10-point jump by 3.0")
+
+# ---- worked examples quoted on the pages --------------------------------------------
+assert abs((100 + 10 / (0.6 * 14 * 1.1 ** 4)) - 100.8131) < 1e-3
+assert abs(mcginley(pd.Series([100.0, 110.0]), 14, 0.6).iloc[-1] - (100 + 10 / (0.6 * 14 * 1.1 ** 4))) < 1e-12
+assert abs(100 * 1.025 - 102.5) < 1e-12 and abs(100 * 0.975 - 97.5) < 1e-12
+slope_ex = linreg(pd.Series([10.0, 11, 13, 14]), 4)  # least squares line through 10, 11, 13, 14
+assert abs(slope_ex[1].iloc[-1] - 1.4) < 1e-12 and abs(slope_ex[0].iloc[-1] - 14.1) < 1e-12  # slope 7/5, fitted 12 + 1.4 x 1.5
+h5, l5, c5 = pd.Series([11.0, 12, 13, 12, 9]), pd.Series([9.0, 10, 11, 8, 7]), pd.Series([10.0, 11.5, 12.5, 8.5, 7.5])
+assert supertrend(h5, l5, c5, 1, 1).tolist() == [8.0, 9.0, 10.0, 14.5, 10.0]
+v_up, v_dn = vortex(pd.Series([10.0, 12, 13, 14]), pd.Series([9.0, 10, 11, 12]), pd.Series([9.5, 11.5, 12.5, 13.5]), 3)
+tr3 = [max(12 - 10, abs(12 - 9.5), abs(10 - 9.5)), max(13 - 11, abs(13 - 11.5), abs(11 - 11.5)), max(14 - 12, abs(14 - 12.5), abs(12 - 12.5))]
+vm_plus = [abs(12 - 9), abs(13 - 10), abs(14 - 11)]
+assert abs(v_up.iloc[-1] - sum(vm_plus) / sum(tr3)) < 1e-12
+assert abs(mcginley(pd.Series([100.0, 90.0]), 14, 0.6).iloc[-1] - (100 - 10 / (0.6 * 14 * 0.9 ** 4))) < 1e-12
+assert abs((100 - 10 / (0.6 * 14 * 0.9 ** 4)) - 98.185) < 1e-3 and abs(0.6 * 14 * 1.1 ** 4 - 12.298) < 1e-3
+vm_minus = [abs(10 - 10), abs(11 - 12), abs(12 - 13)]
+assert abs(v_up.iloc[-1] - 9 / 6.5) < 1e-12 and abs(v_dn.iloc[-1] - sum(vm_minus) / 6.5) < 1e-12 and abs(sum(vm_minus) / 6.5 - 0.3077) < 1e-3
+print("ok  worked examples (McGinley, Envelope, Linear Regression, Supertrend, Vortex)")
+
+
+# =====================================================================================
+# Batch C: Stochastic RSI, Stochastic Momentum Index, True Strength Index, Know Sure Thing, Detrended Price Oscillator
+# =====================================================================================
+from indicators import dpo, kst, smi, stoch_rsi, tsi
+
+
+def stoch_rsi_ref(p, n, sk, sd):
+    r = rsi_ref_same_seed(p, n)
+    raw = [np.nan] * len(p)
+    for i in range(len(p)):
+        w = r[max(0, i - n + 1) : i + 1]
+        if i >= n and not np.isnan(w).any():
+            lo_, hi_ = min(w), max(w)
+            raw[i] = np.nan if hi_ == lo_ else 100 * (r[i] - lo_) / (hi_ - lo_)
+    k = sma_ref(np.array(raw), sk)
+    return k, sma_ref(k, sd)
+
+
+def ema_seeded(x, n):
+    """EMA that starts at the first non-NaN value, written as an explicit loop."""
+    a = 2 / (n + 1)
+    out, prev = [], None
+    for v in x:
+        if np.isnan(v):
+            out.append(np.nan)
+            continue
+        prev = v if prev is None else a * v + (1 - a) * prev
+        out.append(prev)
+    return np.array(out)
+
+
+def smi_ref(h, l, c, n, s1, s2, sig):
+    off, span = [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        top, bottom = max(h[i - n + 1 : i + 1]), min(l[i - n + 1 : i + 1])
+        off[i], span[i] = c[i] - (top + bottom) / 2, top - bottom
+    line = 100 * ema_seeded(ema_seeded(np.array(off), s1), s2) / (ema_seeded(ema_seeded(np.array(span), s1), s2) / 2)
+    return line, ema_seeded(line, sig)
+
+
+def tsi_ref(c, long, short, sig):
+    ch = np.concatenate([[np.nan], np.diff(c)])
+    num = ema_seeded(ema_seeded(ch, long), short)
+    den = ema_seeded(ema_seeded(np.abs(ch), long), short)
+    line = 100 * num / den
+    return line, ema_seeded(line, sig)
+
+
+def kst_ref(c, sig):
+    total = np.zeros(len(c))
+    for r_, s_, w in [(10, 10, 1), (15, 10, 2), (20, 10, 3), (30, 15, 4)]:
+        rc = np.array([np.nan] * r_ + [100 * (c[i] / c[i - r_] - 1) for i in range(r_, len(c))])
+        total = total + w * sma_ref(rc, s_)
+    return total, sma_ref(total, sig)
+
+
+def dpo_ref(c, n):
+    out = [np.nan] * len(c)
+    back = n // 2 + 1
+    for i in range(max(n - 1, back), len(c)):
+        out[i] = c[i - back] - sum(c[i - n + 1 : i + 1]) / n
+    return np.array(out)
+
+
+sk_, sd_ = stoch_rsi(close, 14, 3, 3)
+skr, sdr = stoch_rsi_ref(p, 14, 3, 3)
+check("Stochastic RSI %K vs loop", sk_, skr, 1e-8)
+check("Stochastic RSI %D vs loop", sd_, sdr, 1e-8)
+sm_, ss_ = smi(hi, lo, close, 10, 3, 3, 10)
+smr, ssr = smi_ref(H, L, p, 10, 3, 3, 10)
+check("Stochastic Momentum Index vs loop", sm_, smr, 1e-8)
+check("SMI signal vs loop", ss_, ssr, 1e-8)
+ts_, tg_ = tsi(close, 25, 13, 7)
+tsr, tgr = tsi_ref(p, 25, 13, 7)
+check("True Strength Index vs loop", ts_, tsr, 1e-8)
+check("TSI signal vs loop", tg_, tgr, 1e-8)
+ks_, kg_ = kst(close, 9)
+ksr, kgr = kst_ref(p, 9)
+check("Know Sure Thing vs loop", ks_, ksr, 1e-8)
+check("KST signal vs loop", kg_, kgr, 1e-8)
+check("Detrended Price Oscillator (20) vs loop", dpo(close, 20), dpo_ref(p, 20), 1e-9)
+
+# bounds
+assert sk_.dropna().between(-1e-9, 100 + 1e-9).all() and sm_.dropna().abs().max() <= 100 + 1e-9 and ts_.dropna().abs().max() <= 100 + 1e-9
+print("ok  Stochastic RSI stays in 0..100; SMI and TSI stay in -100..100")
+
+# properties quoted on the pages
+straight = pd.Series(np.arange(400, dtype=float) * 0.5 + 100)
+assert all(abs(dpo(straight, n).iloc[-1] - (-1.5 * 0.5)) < 1e-9 for n in (10, 20, 40))
+cycle = pd.Series(10 * np.sin(2 * np.pi * np.arange(400) / 20))
+expected = cycle.shift(11)  # a 20-bar sine averages to exactly its midline over a 20-bar window
+assert (dpo(cycle, 20) - expected).dropna().abs().max() < 1e-9
+print("ok  DPO: constant -1.5 x slope on a straight climb at any even length; on a 20-bar cycle it returns the cycle exactly, 11 bars late")
+assert tsi(pd.Series(np.arange(100, dtype=float)), 25, 13)[0].iloc[-1] > 99.999 and tsi(pd.Series(-np.arange(100, dtype=float)), 25, 13)[0].iloc[-1] < -99.999
+flat_run = pd.Series(np.arange(300, dtype=float))
+assert stoch_rsi(flat_run)[0].dropna().empty  # a straight climb pins RSI at 100, its range is zero, so the %K is undefined
+print("ok  TSI hits +/-100 on a straight line; Stochastic RSI is undefined when RSI has not moved")
+grow = pd.Series(100 * 1.01 ** np.arange(200))
+want = sum(w * 100 * (1.01 ** r_ - 1) for r_, w in [(10, 1), (15, 2), (20, 3), (30, 4)])
+assert abs(kst(grow, 9)[0].iloc[-1] - want) < 1e-9
+print("ok  KST on steady 1% growth equals the weighted sum of the four growth rates")
+
+# worked examples quoted on the pages
+assert abs(100 * (55 - 40) / (60 - 40) - 75.0) < 1e-12
+h2, l2, c2 = pd.Series([12.0, 13.0]), pd.Series([10.0, 11.0]), pd.Series([11.5, 12.5])
+assert abs(smi(h2, l2, c2, 2, 1, 1, 1)[0].iloc[-1] - 100 * 1.0 / 1.5) < 1e-9
+assert abs(tsi(pd.Series([10.0, 12, 13, 12]), 3, 3)[0].iloc[-1] - 100 * 1.0 / 1.5) < 1e-9
+assert 1 * 2 + 2 * 3 + 3 * 4 + 4 * 5 == 40
+assert abs(dpo(pd.Series([10.0, 11, 12, 13, 14, 15]), 4).iloc[-1] - (-1.5)) < 1e-12
+print("ok  worked examples (Stochastic RSI, SMI, TSI, KST, DPO)")
+
+
+# =====================================================================================
+# Batch D: Coppock Curve, Fisher Transform, Relative Momentum Index, Elder Ray, Connors RSI
+# =====================================================================================
+from indicators import connors_rsi, coppock, elder_ray, fisher, rmi
+
+
+def coppock_ref(c, a, b, n):
+    roc_sum = [np.nan] * len(c)
+    for i in range(max(a, b), len(c)):
+        roc_sum[i] = 100 * (c[i] / c[i - a] - 1) + 100 * (c[i] / c[i - b] - 1)
+    out = [np.nan] * len(c)
+    for i in range(len(c)):
+        w = roc_sum[i - n + 1 : i + 1] if i >= n - 1 else []
+        if len(w) == n and not np.isnan(w).any():
+            out[i] = sum((k + 1) * v for k, v in enumerate(w)) / (n * (n + 1) / 2)
+    return np.array(out)
+
+
+def fisher_ref(h, l, n):
+    mid = (h + l) / 2
+    value = line = 0.0
+    out = []
+    for i in range(len(mid)):
+        if i < n - 1:
+            out.append(np.nan)
+            continue
+        window = mid[i - n + 1 : i + 1]
+        top, bottom = max(window), min(window)
+        if top == bottom:
+            out.append(np.nan)
+            continue
+        x = 2 * ((mid[i] - bottom) / (top - bottom) - 0.5)
+        value = 0.33 * x + 0.67 * value
+        value = min(0.999, max(-0.999, value))
+        line = 0.5 * np.log((1 + value) / (1 - value)) + 0.5 * line
+        out.append(line)
+    return np.array(out)
+
+
+def rmi_ref(c, n, k):
+    out = [np.nan] * len(c)
+    ag = al = None
+    for i in range(k, len(c)):
+        ch = c[i] - c[i - k]
+        g, l_ = max(ch, 0.0), max(-ch, 0.0)
+        if ag is None:
+            ag, al = g, l_
+        else:
+            ag = ag * (1 - 1 / n) + g / n
+            al = al * (1 - 1 / n) + l_ / n
+        out[i] = 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
+    return np.array(out)
+
+
+def elder_ref(h, l, c, n):
+    e = ema_ref(c, n)
+    return h - e, l - e
+
+
+def connors_ref(c, rn, sn, pn):
+    streak, run = [0.0], 0.0
+    for i in range(1, len(c)):
+        step = np.sign(c[i] - c[i - 1])
+        run = 0.0 if step == 0 else (run + step if np.sign(run) == step else step)
+        streak.append(run)
+    r1 = rsi_ref_same_seed(c, rn)
+    r2 = rsi_ref_same_seed(np.array(streak), sn)
+    out = [np.nan] * len(c)
+    for i in range(pn + 1, len(c)):
+        today = c[i] / c[i - 1] - 1
+        prior = [c[j] / c[j - 1] - 1 for j in range(i - pn, i)]
+        out[i] = (r1[i] + r2[i] + 100 * sum(1 for x in prior if x < today) / pn) / 3
+    return np.array(out)
+
+
+check("Coppock Curve (14, 11, 10) vs loop", coppock(close, 14, 11, 10), coppock_ref(p, 14, 11, 10), 1e-9)
+fi, fg = fisher(hi, lo, 10)
+fir = fisher_ref(H, L, 10)
+check("Fisher Transform (10) vs loop", fi, fir, 1e-9)
+assert np.allclose(fg.iloc[1:].dropna().to_numpy(), fi.shift(1).iloc[1:].dropna().to_numpy())
+check("Relative Momentum Index (14, 5) vs loop", rmi(close, 14, 5), rmi_ref(p, 14, 5), 1e-9)
+bull, bear = elder_ray(hi, lo, close, 13)
+bu_r, be_r = elder_ref(H, L, p, 13)
+check("Elder Ray bull power vs loop", bull, bu_r, 1e-9)
+check("Elder Ray bear power vs loop", bear, be_r, 1e-9)
+check("Connors RSI (3, 2, 100) vs loop", connors_rsi(close, 3, 2, 100), connors_ref(p, 3, 2, 100), 1e-8)
+
+# properties quoted on the pages
+assert (rmi(close, 14, 1).dropna() - rsi(close, 14).dropna()).abs().max() < 1e-12
+print("ok  RMI with a 1-bar momentum is exactly RSI")
+grow = pd.Series(100 * 1.01 ** np.arange(200))
+assert abs(coppock(grow).iloc[-1] - (100 * (1.01 ** 14 - 1) + 100 * (1.01 ** 11 - 1))) < 1e-9
+print("ok  Coppock on steady 1% growth equals the sum of the two growth rates")
+climb3 = pd.Series(np.arange(200, dtype=float) + 100)
+fclimb = fisher(climb3 + 1, climb3 - 1, 10)[0].iloc[-1]
+assert abs(fclimb - 2 * 0.5 * np.log(1.999 / 0.001)) < 1e-6 and abs(fclimb - 7.6) < 0.01
+print("ok  Fisher Transform tops out near 7.6 (a straight climb), by its 0.999 clip and its half-weight on the prior value")
+assert connors_rsi(close).dropna().between(0, 100).all()
+print("ok  Connors RSI stays in 0..100")
+
+# worked examples quoted on the pages
+assert abs((1 * 10 + 2 * 12 + 3 * 16) / 6 - 13.6667) < 1e-3
+assert abs(0.33 * 0.5 + 0.67 * 0.0 - 0.165) < 1e-12 and abs(0.5 * np.log(1.165 / 0.835) - 0.1664) < 1e-3
+eh = elder_ray(pd.Series([10.0, 10.0]), pd.Series([9.0, 9.0]), pd.Series([9.5, 9.5]), 2)
+assert (eh[0].iloc[-1], eh[1].iloc[-1]) == (0.5, -0.5)
+assert abs((20 + 10 + 60) / 3 - 30) < 1e-12
+print("ok  worked examples (Coppock, Fisher, Elder Ray, Connors RSI)")
+
+
+# =====================================================================================
+# Batch E: Historical Volatility, Standard Deviation, Chaikin Volatility, Relative Volatility Index, Mass Index
+# =====================================================================================
+from indicators import chaikin_volatility, historical_volatility, mass_index, relative_volatility, std_dev
+
+
+def hv_ref(c, n, per_year):
+    out = [np.nan] * len(c)
+    r = [np.nan] + [np.log(c[i] / c[i - 1]) for i in range(1, len(c))]
+    for i in range(n, len(c)):
+        w = r[i - n + 1 : i + 1]
+        m = sum(w) / n
+        out[i] = 100 * (sum((x - m) ** 2 for x in w) / (n - 1)) ** 0.5 * per_year ** 0.5
+    return np.array(out)
+
+
+def std_ref(c, n):
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        w = c[i - n + 1 : i + 1]
+        m = sum(w) / n
+        out[i] = (sum((x - m) ** 2 for x in w) / n) ** 0.5
+    return np.array(out)
+
+
+def chaikin_vol_ref(h, l, n, k):
+    e = ema_ref(h - l, n)
+    return np.array([np.nan] * k + [100 * (e[i] / e[i - k] - 1) for i in range(k, len(e))])
+
+
+def rvi_ref(c, std_n, n):
+    sd = std_ref(c, std_n)
+    up = dn = None
+    out = [np.nan] * len(c)
+    for i in range(len(c)):
+        if np.isnan(sd[i]):
+            continue  # an average starts at its first available value
+        ch = c[i] - c[i - 1] if i > 0 else np.nan
+        u = sd[i] if ch > 0 else 0.0
+        d = sd[i] if ch < 0 else 0.0
+        if up is None:
+            up, dn = u, d
+        else:
+            up = up * (1 - 1 / n) + u / n
+            dn = dn * (1 - 1 / n) + d / n
+        out[i] = np.nan if up + dn == 0 else 100 * up / (up + dn)
+    return np.array(out)
+
+
+def mass_ref(h, l, n, total):
+    s1 = ema_ref(h - l, n)
+    s2 = ema_ref(s1, n)
+    ratio = s1 / s2
+    return np.array([np.nan] * (total - 1) + [sum(ratio[i - total + 1 : i + 1]) for i in range(total - 1, len(ratio))])
+
+
+check("Historical volatility (20) vs loop", historical_volatility(close, 20, 252), hv_ref(p, 20, 252), 1e-9)
+check("Standard deviation (20) vs loop", std_dev(close, 20), std_ref(p, 20), 1e-9)
+check("Chaikin Volatility (10, 10) vs loop", chaikin_volatility(hi, lo, 10, 10), chaikin_vol_ref(H, L, 10, 10), 1e-9)
+check("Relative Volatility Index (10, 14) vs loop", relative_volatility(close, 10, 14), rvi_ref(p, 10, 14), 1e-8)
+check("Mass Index (9, 25) vs loop", mass_index(hi, lo, 9, 25), mass_ref(H, L, 9, 25), 1e-9)
+
+# properties quoted on the pages
+_, bb_up, bb_dn = bollinger(close, 20, 2)
+assert ((bb_up - bb_dn) - 4 * std_dev(close, 20)).abs().max() < 1e-9
+assert ((std_dev(close * 2, 20)) - 2 * std_dev(close, 20)).abs().max() < 1e-9
+print("ok  Bollinger Band width is exactly 4 standard deviations; doubling prices doubles the standard deviation")
+assert abs(mass_index(pd.Series([3.0] * 100), pd.Series([1.0] * 100)).iloc[-1] - 25) < 1e-9
+print("ok  Mass Index sits at exactly 25 when the daily range never changes")
+assert relative_volatility(close).dropna().between(0, 100).all()
+print("ok  Relative Volatility Index stays in 0..100")
+
+# worked examples quoted on the pages
+assert abs(std_dev(pd.Series([2.0, 4, 4, 4, 5, 5, 7, 9]), 8).iloc[-1] - 2.0) < 1e-12
+assert abs(100 * 0.01 * 252 ** 0.5 - 15.87) < 0.01
+alt = pd.Series(100 * np.exp(np.cumsum([0.0] + [0.01, -0.01] * 20)))
+assert abs(historical_volatility(alt, 20, 252).iloc[-1] - 100 * (20 * 0.01 ** 2 / 19) ** 0.5 * 252 ** 0.5) < 1e-9
+assert abs(chaikin_volatility(pd.Series([2.0, 2, 2, 3]), pd.Series([0.0] * 4), 1, 3).iloc[-1] - 50) < 1e-12
+assert abs(relative_volatility(pd.Series([10.0, 12, 11, 13]), 2, 3).iloc[-1] - 87.5) < 1e-9
+assert abs(100 * 1.2 / (1.2 + 0.8) - 60) < 1e-12
+print("ok  worked examples (HV, Standard Deviation, Chaikin Volatility, RVI, Mass Index)")
+
+
+# =====================================================================================
+# Batch F: Choppiness Index, Ulcer Index, Pivot Points, Heikin-Ashi, Anchored VWAP
+# =====================================================================================
+from indicators import anchored_vwap, choppiness, heikin_ashi, pivot_points, ulcer
+
+
+def chop_ref(h, l, c, n):
+    tr = [h[0] - l[0]] + [max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])) for i in range(1, len(c))]
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        span = max(h[i - n + 1 : i + 1]) - min(l[i - n + 1 : i + 1])
+        out[i] = 100 * np.log10(sum(tr[i - n + 1 : i + 1]) / span) / np.log10(n)
+    return np.array(out)
+
+
+def ulcer_ref(c, n):
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        dd = []
+        for j in range(i - n + 1, i + 1):
+            peak = max(c[max(0, j - n + 1) : j + 1])
+            dd.append(100 * (c[j] / peak - 1))
+        out[i] = (sum(x * x for x in dd) / n) ** 0.5
+    return np.array(out)
+
+
+def ha_ref(o, h, l, c):
+    out = []
+    prev_open = prev_close = None
+    for i in range(len(c)):
+        hc = (o[i] + h[i] + l[i] + c[i]) / 4
+        ho = (o[i] + c[i]) / 2 if i == 0 else (prev_open + prev_close) / 2
+        out.append((ho, max(h[i], ho, hc), min(l[i], ho, hc), hc))
+        prev_open, prev_close = ho, hc
+    return np.array(out)
+
+
+def avwap_ref(h, l, c, v, anchor):
+    out = [np.nan] * len(c)
+    pv = vv = 0.0
+    for i in range(anchor, len(c)):
+        pv += (h[i] + l[i] + c[i]) / 3 * v[i]
+        vv += v[i]
+        out[i] = pv / vv
+    return np.array(out)
+
+
+check("Choppiness Index (14) vs loop", choppiness(hi, lo, close, 14), chop_ref(H, L, p, 14), 1e-9)
+check("Ulcer Index (14) vs loop", ulcer(close, 14), ulcer_ref(p, 14), 1e-9)
+op = close.shift().fillna(close.iloc[0]) + (hi - lo) * 0.1  # an invented open between bars, only to exercise the code
+har = ha_ref(op.to_numpy(), H, L, p)
+ha_o, ha_h, ha_l, ha_c = heikin_ashi(op, hi, lo, close)
+for k, (name, got) in enumerate([("open", ha_o), ("high", ha_h), ("low", ha_l), ("close", ha_c)]):
+    check(f"Heikin-Ashi {name} vs loop", got, har[:, k], 1e-9)
+vol_s = pd.Series(rng.uniform(1000, 2000, len(close)))
+check("Anchored VWAP (anchor 200) vs loop", anchored_vwap(hi, lo, close, vol_s, 200), avwap_ref(H, L, p, vol_s.to_numpy(), 200), 1e-9)
+sess0 = pd.Series([0] * len(close))
+assert (anchored_vwap(hi, lo, close, vol_s, 0) - vwap(hi, lo, close, vol_s, sess0)).abs().max() < 1e-9
+print("ok  Anchored VWAP anchored at the first bar is exactly the session VWAP")
+pp_h, pp_l, pp_c = pd.Series([12.0]), pd.Series([8.0]), pd.Series([11.0])
+lv = [float(x.iloc[0]) for x in pivot_points(pp_h, pp_l, pp_c)]
+assert np.allclose(lv, [31 / 3, 38 / 3, 26 / 3, 31 / 3 + 4, 31 / 3 - 4])
+assert abs((lv[1] - lv[2]) - 4.0) < 1e-12  # R1 - S1 is the whole previous range
+print("ok  Pivot levels: worked example, and R1 - S1 is always exactly the previous bar's high-low range")
+assert (ulcer(pd.Series(np.arange(100.0) + 100), 14).dropna() == 0).all()
+assert abs(ulcer(pd.Series([100.0, 98, 97]), 3).iloc[-1] - ((0 + 4 + 9) / 3) ** 0.5) < 1e-9
+assert abs(100 * np.log10(14 * 5 / 5) / np.log10(14) - 100) < 1e-9
+assert abs(100 * np.log10(28 / 4) / np.log10(14) - 73.74) < 0.01
+print("ok  Ulcer Index is 0 in a rising market; Choppiness is 100 when every bar's range equals the whole window's span")
+o2, h2, l2, c2 = pd.Series([10.0, 11.0]), pd.Series([12.0, 13.0]), pd.Series([9.0, 10.5]), pd.Series([11.0, 12.5])
+hh = heikin_ashi(o2, h2, l2, c2)
+assert [hh[0].iloc[0], hh[3].iloc[0]] == [10.5, 10.5] and [hh[0].iloc[1], hh[1].iloc[1], hh[2].iloc[1], hh[3].iloc[1]] == [10.5, 13.0, 10.5, 11.75]
+tp = pd.Series([10.0, 12.0])
+assert abs(anchored_vwap(tp, tp, tp, pd.Series([100.0, 300.0]), 0).iloc[-1] - 11.5) < 1e-12
+print("ok  worked examples (Choppiness, Ulcer, Pivot Points, Heikin-Ashi, Anchored VWAP)")
+
+
+# =====================================================================================
+# Batch G: Accumulation/Distribution, Chaikin Oscillator, Money Flow Index, Force Index, Ease of Movement
+# =====================================================================================
+from indicators import accumulation_distribution, chaikin_oscillator, ease_of_movement, force_index, mfi
+
+volume = pd.Series(rng.uniform(1.0e6, 2.0e6, len(close)))
+V_ = volume.to_numpy()
+
+
+def adl_ref(h, l, c, v):
+    total, out = 0.0, []
+    for i in range(len(c)):
+        rng_ = h[i] - l[i]
+        total += (0.0 if rng_ == 0 else ((c[i] - l[i]) - (h[i] - c[i])) / rng_) * v[i]
+        out.append(total)
+    return np.array(out)
+
+
+def mfi_ref(h, l, c, v, n):
+    tp = [(h[i] + l[i] + c[i]) / 3 for i in range(len(c))]
+    out = [np.nan] * len(c)
+    for i in range(n, len(c)):
+        pos = sum(tp[j] * v[j] for j in range(i - n + 1, i + 1) if tp[j] > tp[j - 1])
+        neg = sum(tp[j] * v[j] for j in range(i - n + 1, i + 1) if tp[j] < tp[j - 1])
+        out[i] = 100 - 100 / (1 + pos / neg)
+    return np.array(out)
+
+
+def force_ref(c, v, n):
+    a = 2 / (n + 1)
+    out, prev = [np.nan], None
+    for i in range(1, len(c)):
+        raw = (c[i] - c[i - 1]) * v[i]
+        prev = raw if prev is None else a * raw + (1 - a) * prev
+        out.append(prev)
+    return np.array(out)
+
+
+def emv_ref(h, l, v, n, scale):
+    raw = [np.nan] + [(((h[i] + l[i]) / 2 - (h[i - 1] + l[i - 1]) / 2) / ((v[i] / scale) / (h[i] - l[i]))) for i in range(1, len(h))]
+    out = [np.nan] * len(h)
+    for i in range(n, len(h)):
+        out[i] = sum(raw[i - n + 1 : i + 1]) / n
+    return np.array(out)
+
+
+adl = accumulation_distribution(hi, lo, close, volume)
+check("Accumulation/Distribution vs loop", adl, adl_ref(H, L, p, V_), 1e-3)
+ema_adl = lambda n: ema_ref(adl.to_numpy(), n)
+check("Chaikin Oscillator (3, 10) vs loop", chaikin_oscillator(hi, lo, close, volume, 3, 10), ema_adl(3) - ema_adl(10), 1e-3)
+check("Money Flow Index (14) vs loop", mfi(hi, lo, close, volume, 14), mfi_ref(H, L, p, V_, 14), 1e-9)
+check("Force Index (13) vs loop", force_index(close, volume, 13), force_ref(p, V_, 13), 1e-3)
+check("Ease of Movement (14) vs loop", ease_of_movement(hi, lo, volume, 14), emv_ref(H, L, V_, 14, 1e6), 1e-9)
+
+# exact identities quoted on the pages
+assert ((adl.diff(20)) - cmf(hi, lo, close, volume, 20) * volume.rolling(20).sum()).abs().max() < 1e-3
+assert (chaikin_oscillator(hi, lo, close, volume) - macd(adl, 3, 10)[0]).abs().max() < 1e-9
+print("ok  A/D line change over 20 bars = CMF x 20-bar volume; Chaikin Oscillator = the MACD line of the A/D line (3, 10)")
+assert abs(accumulation_distribution(hi, hi - 1, hi, volume).iloc[-1] - volume.sum()) < 1e-3
+assert mfi(pd.Series(np.arange(100.0, 0, -1)), pd.Series(np.arange(100.0, 0, -1)), pd.Series(np.arange(100.0, 0, -1)), volume.iloc[:100], 14).dropna().eq(0).all()
+assert abs(ease_of_movement(hi, lo, volume * 2, 14).iloc[-1] - ease_of_movement(hi, lo, volume, 14).iloc[-1] / 2) < 1e-9
+print("ok  A/D equals cumulative volume when every close is the high; MFI is 0 in an unbroken decline; doubling volume halves Ease of Movement")
+
+# worked examples quoted on the pages
+assert abs(accumulation_distribution(pd.Series([12.0]), pd.Series([8.0]), pd.Series([11.0]), pd.Series([1000.0])).iloc[-1] - 500) < 1e-9
+assert abs(((11 - 8) - (12 - 11)) / (12 - 8) - 0.5) < 1e-12 and 520 - 480 == 40
+tpv = pd.Series([10.0, 11.0, 10.5, 11.5])
+assert abs(mfi(tpv, tpv, tpv, pd.Series([100.0, 200, 100, 300]), 3).iloc[-1] - 100 * 5650 / (5650 + 1050)) < 1e-9
+assert abs(100 * 5650 / 6700 - 84.33) < 0.01
+assert force_index(pd.Series([10.0, 12, 11]), pd.Series([1000.0, 1500, 2000]), 1).iloc[-1] == -2000 and (12 - 10) * 1500 == 3000
+em = ease_of_movement(pd.Series([10.0, 12]), pd.Series([8.0, 9]), pd.Series([1e6, 2e6]), 1)
+assert abs(em.iloc[-1] - 2.25) < 1e-12
+print("ok  worked examples (A/D, Chaikin Oscillator, MFI, Force Index, Ease of Movement)")
+
+
+# =====================================================================================
+# Batch H: Klinger, Volume Oscillator, Negative/Positive Volume Index, Price Volume Trend, Balance of Market Power
+# =====================================================================================
+from indicators import (balance_of_market_power, klinger, negative_volume_index, positive_volume_index, price_volume_trend,
+                        volume_oscillator)
+
+volume2 = pd.Series(rng.uniform(1.0e6, 2.0e6, len(close)))
+V2 = volume2.to_numpy()
+open2 = (close.shift().fillna(close.iloc[0]) + (hi - lo) * 0.05)  # an invented open, only to exercise the code
+O2 = open2.to_numpy()
+
+
+def klinger_ref(h, l, c, v, fast, slow, sig):
+    n = len(c)
+    trend, cm, force = [0] * n, [0.0] * n, [0.0] * n
+    for i in range(n):
+        if i == 0:
+            trend[i] = -1  # the first bar has no previous bar, so it counts as not rising
+            cm[i] = h[i] - l[i]
+        else:
+            trend[i] = 1 if (h[i] + l[i] + c[i]) > (h[i - 1] + l[i - 1] + c[i - 1]) else -1
+            cm[i] = (cm[i - 1] if trend[i] == trend[i - 1] else h[i - 1] - l[i - 1]) + (h[i] - l[i])
+        force[i] = v[i] * abs(2 * (h[i] - l[i]) / cm[i] - 1) * trend[i] * 100
+    line = ema_ref(np.array(force), fast) - ema_ref(np.array(force), slow)
+    return line, ema_ref(line, sig)
+
+
+def vo_ref(v, fast, slow):
+    f, s = ema_ref(v, fast), ema_ref(v, slow)
+    return 100 * (f - s) / s
+
+
+def nvi_pvi_ref(c, v, start, negative):
+    out = [start]
+    for i in range(1, len(c)):
+        take = v[i] < v[i - 1] if negative else v[i] > v[i - 1]
+        out.append(out[-1] * (c[i] / c[i - 1]) if take else out[-1])
+    return np.array(out)
+
+
+def pvt_ref(c, v):
+    out = [0.0]
+    for i in range(1, len(c)):
+        out.append(out[-1] + (c[i] / c[i - 1] - 1) * v[i])
+    return np.array(out)
+
+
+def bmp_ref(o, h, l, c, n):
+    raw = [(c[i] - o[i]) / (h[i] - l[i]) for i in range(len(c))]
+    return np.array([np.nan] * (n - 1) + [sum(raw[i - n + 1 : i + 1]) / n for i in range(n - 1, len(c))])
+
+
+kl, ks_ = klinger(hi, lo, close, volume2, 34, 55, 13)
+klr, ksr = klinger_ref(H, L, p, V2, 34, 55, 13)
+check("Klinger oscillator (34, 55) vs loop", kl, klr, 1e-3)
+check("Klinger signal (13) vs loop", ks_, ksr, 1e-3)
+check("Volume Oscillator (5, 10) vs loop", volume_oscillator(volume2, 5, 10), vo_ref(V2, 5, 10), 1e-9)
+check("Negative Volume Index vs loop", negative_volume_index(close, volume2), nvi_pvi_ref(p, V2, 1000.0, True), 1e-9)
+check("Positive Volume Index vs loop", positive_volume_index(close, volume2), nvi_pvi_ref(p, V2, 1000.0, False), 1e-9)
+check("Price Volume Trend vs loop", price_volume_trend(close, volume2), pvt_ref(p, V2), 1e-3)
+check("Balance of Market Power (14) vs loop", balance_of_market_power(open2, hi, lo, close, 14), bmp_ref(O2, H, L, p, 14), 1e-9)
+
+# exact relationships quoted on the pages
+assert (volume_oscillator(volume2, 5, 10) - ppo(volume2, 5, 10, 9)[0]).abs().max() < 1e-9
+print("ok  Volume Oscillator is exactly the PPO line applied to volume")
+product = negative_volume_index(close, volume2) * positive_volume_index(close, volume2) / 1000.0
+assert (product - 1000.0 * close / close.iloc[0]).abs().max() < 1e-6
+print("ok  Negative Volume Index x Positive Volume Index / 1000 is exactly the price index (every day's change lands in one of them)")
+
+# worked examples quoted on the pages
+c3, v3 = pd.Series([100.0, 102, 101]), pd.Series([10.0, 9, 11])
+assert negative_volume_index(c3, v3).round(6).tolist() == [1000.0, 1020.0, 1020.0]
+assert abs(positive_volume_index(c3, v3).iloc[-1] - 1000 * 101 / 102) < 1e-9 and abs(1000 * 101 / 102 - 990.196) < 1e-3
+pt3 = price_volume_trend(pd.Series([100.0, 102, 101]), pd.Series([500.0, 1000, 2000]))
+assert abs(pt3.iloc[1] - 20) < 1e-9 and abs(pt3.iloc[2] - (20 - 2000 / 102)) < 1e-9 and abs(2000 / 102 - 19.608) < 1e-3
+bm1 = balance_of_market_power(pd.Series([10.0]), pd.Series([12.0]), pd.Series([9.0]), pd.Series([11.5]), 1)
+assert abs(bm1.iloc[-1] - 0.5) < 1e-12
+assert abs(100 * (1.2 - 1.0) / 1.0 - 20) < 1e-12 and abs(abs(2 * 0.75 - 1) * 1000 * 100 - 50000) < 1e-9
+print("ok  worked examples (Klinger, Volume Oscillator, NVI/PVI, Price Volume Trend, Balance of Market Power)")
+
+
+# =====================================================================================
+# Volume Profile
+# =====================================================================================
+from indicators import volume_profile
+
+
+def profile_ref(h, l, c, v, bins, share):
+    tp = [(h[i] + l[i] + c[i]) / 3 for i in range(len(c))]
+    bottom, top = min(l), max(h)
+    width = (top - bottom) / bins
+    totals = [0.0] * bins
+    for x, vol in zip(tp, v):
+        k = min(bins - 1, max(0, int(np.ceil((x - bottom) / width)) - 1))  # buckets are open on the left and closed on the right
+        totals[k] += vol
+    poc = max(range(bins), key=lambda k: totals[k])
+    lo_k = hi_k = poc
+    covered = totals[poc]
+    while covered < share * sum(totals):
+        down = totals[lo_k - 1] if lo_k > 0 else -1.0
+        up = totals[hi_k + 1] if hi_k < bins - 1 else -1.0
+        if up >= down:
+            hi_k += 1
+            covered += up
+        else:
+            lo_k -= 1
+            covered += down
+    return totals, bottom + width * (poc + 0.5), bottom + width * lo_k, bottom + width * (hi_k + 1)
+
+
+vp, v_poc, v_val, v_vah = volume_profile(hi, lo, close, volume2, 24, 0.7)
+tot_r, poc_r, val_r, vah_r = profile_ref(H, L, p, V2, 24, 0.7)
+assert np.allclose(vp.to_numpy(), tot_r) and abs(v_poc - poc_r) < 1e-9 and abs(v_val - val_r) < 1e-9 and abs(v_vah - vah_r) < 1e-9
+print("ok  Volume Profile (24 bins, 70%) vs independent loop: bins, point of control and value area agree")
+assert abs(vp.sum() - volume2.sum()) < 1e-3 and vp.loc[v_poc] == vp.max()
+assert vp.loc[(vp.index > v_val) & (vp.index < v_vah)].sum() >= 0.7 * vp.sum() - 1e-6
+print("ok  Volume Profile: every bar's volume lands in exactly one bin; the value area holds at least 70% of the volume")
+hh = pd.Series([10.0, 11.5, 11.5, 11.5, 12.5, 13.0])
+ex_p, ex_poc, ex_val, ex_vah = volume_profile(hh, hh, hh, pd.Series([100.0] * 6), 3, 0.7)
+assert ex_p.tolist() == [100.0, 300.0, 200.0] and ex_poc == 11.5 and (ex_val, ex_vah) == (11.0, 13.0)
+print("ok  worked example (Volume Profile)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
@@ -624,32 +1396,16 @@ import re
 
 import indicators
 
-PAGES = {
-    "simple-moving-average": "sma",
-    "exponential-moving-average": "ema",
-    "relative-strength-index": "rsi",
-    "macd": "macd",
-    "bollinger-bands": "bollinger",
-    "average-true-range": "atr",
-    "stochastic-oscillator": "stochastic",
-    "volume-weighted-average-price": "vwap",
-    "on-balance-volume": "obv",
-    "average-directional-index": "adx",
-    "parabolic-sar": "psar",
-    "commodity-channel-index": "cci",
-    "williams-percent-r": "williams_r",
-    "rate-of-change": "roc",
-    "aroon": "aroon",
-    "donchian-channels": "donchian",
-    "keltner-channels": "keltner",
-    "chaikin-money-flow": "cmf",
-    "ichimoku-cloud": "ichimoku",
-    "awesome-oscillator": "awesome",
-    "trix": "trix",
-    "ultimate-oscillator": "ultimate",
-    "chande-momentum-oscillator": "cmo",
-    "percentage-price-oscillator": "ppo",
-}
+def _code_function(slug):
+    """The function a study page's first python block defines."""
+    text = (pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies" / f"{slug}.md").read_text()
+    match = re.search(r"```python\n\s*def (\w+)\(", text)
+    assert match, f"{slug}: no python block defining a function"
+    return match.group(1)
+
+
+_studies_dir = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
+PAGES = {f.stem: _code_function(f.stem) for f in sorted(_studies_dir.glob("*.md"))}
 studies = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
 for slug, fn in PAGES.items():
     text = (studies / f"{slug}.md").read_text()

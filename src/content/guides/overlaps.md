@@ -70,6 +70,56 @@ A high correlation means two lines rise and fall together. It does not guarantee
 
 **What to keep (my view):** one of On-Balance Volume or Chaikin Money Flow, if the instrument has reliable volume. VWAP is for intraday use.
 
+### Moving averages and their cousins
+
+[Simple Moving Average](../studies/simple-moving-average/), [Exponential Moving Average](../studies/exponential-moving-average/), [Weighted Moving Average](../studies/weighted-moving-average/), [Double Exponential Moving Average](../studies/double-exponential-moving-average/), [Triple Exponential Moving Average](../studies/triple-exponential-moving-average/), [Hull Moving Average](../studies/hull-moving-average/), [Kaufman Adaptive Moving Average](../studies/kaufman-adaptive-moving-average/), [McGinley Dynamic](../studies/mcginley-dynamic/), [Linear Regression](../studies/linear-regression/) and [Moving Average Envelope](../studies/moving-average-envelope/).
+
+- The McGinley Dynamic is nearly an EMA (0.99, measured on distance from price). The Weighted Moving Average is close to both the SMA (0.97) and the EMA (0.96).
+- The Double and Triple Exponential Moving Averages and the Hull Moving Average cut lag by extrapolating. That makes them genuinely different from an EMA (the DEMA correlates only 0.68 with it), but the difference is in lag and overshoot and not in information.
+- The Kaufman Adaptive Moving Average changes speed with how directional the market is, and correlates 0.78 with an EMA.
+- Linear Regression fits a line instead of averaging, and its distance from price correlates only 0.34 with the SMA's.
+- The Moving Average Envelope is a fixed-percentage channel and overlaps partly with Bollinger Bands (0.82).
+
+**What to keep (my view):** one average. If lag bothers you, try a Hull or a Double Exponential average, and check the overshoot on the page before you trust it.
+
+### More momentum: smoothed changes and range oscillators
+
+- The True Strength Index is nearly the same line as MACD (0.98), and the Know Sure Thing nearly so (0.95). The Know Sure Thing and the True Strength Index overlap partly (0.94).
+- The Coppock Curve is a smoothed momentum line that overlaps partly with Rate of Change (0.86).
+- The Stochastic RSI overlaps partly with the Stochastic (0.82) and much less with RSI (0.55). The Stochastic Momentum Index overlaps partly with the Stochastic (0.90), and the Fisher Transform less so (0.75).
+- The Relative Momentum Index is exactly RSI when its step is 1 bar, and correlates 0.90 with RSI at its usual step of 5. Connors RSI correlates 0.85 with a 3-bar RSI, which is one third of it.
+- The Money Flow Index is a volume-weighted RSI, and correlates 0.73 with RSI. The Relative Volatility Index is built like RSI and correlates 0.83 with it, though its name suggests it measures volatility.
+- The Detrended Price Oscillator is a different kind of tool: it removes the trend to show cycles, and is not for timing.
+
+**What to keep (my view):** nothing new. RSI and MACD still cover this ground. Pick a relative only if one specific feature matters to you, such as the Stochastic RSI's sensitivity.
+
+### Volatility and trendiness
+
+[Average True Range](../studies/average-true-range/), [Historical Volatility](../studies/historical-volatility/), [Standard Deviation](../studies/standard-deviation/), [Chaikin Volatility](../studies/chaikin-volatility/), [Ulcer Index](../studies/ulcer-index/), [Mass Index](../studies/mass-index/) and [Choppiness Index](../studies/choppiness-index/).
+
+- Historical Volatility correlates 0.87 with ATR. It is the same idea in percent, which is what lets you compare instruments.
+- Standard Deviation is exactly a quarter of the distance between the upper and lower Bollinger Bands. It also mixes trend into its reading, and correlates only 0.63 with ATR.
+- Chaikin Volatility is the change in the smoothed range. Its swings correlate 0.90 with the 10-bar change in ATR.
+- The Ulcer Index counts only falls from a peak, and correlates 0.74 with Historical Volatility.
+- The Choppiness Index runs opposite to ADX (a correlation of -0.58): high means choppy, where ADX high means trending.
+- The Mass Index measures something unusual (range widening), and is the one study here with almost no relatives.
+
+**What to keep (my view):** ATR for stops, and Historical Volatility if you compare instruments or size positions by risk.
+
+### More volume studies
+
+- Chaikin Money Flow is exactly the 20-bar change in the Accumulation/Distribution Line divided by the 20-bar volume. The Chaikin Oscillator is exactly the MACD line of the Accumulation/Distribution Line.
+- The Volume Oscillator is exactly the Percentage Price Oscillator applied to volume. Anchored VWAP is exactly VWAP when anchored at the start of a session.
+- The Accumulation/Distribution Line and On-Balance Volume overlap partly (0.84), and the Chaikin Oscillator and Chaikin Money Flow also (0.71).
+- The Price Volume Trend is nearly just price momentum: its 20-bar change correlates 0.98 with a 20-bar Rate of Change. Ease of Movement correlates 0.90 with a 12-bar Rate of Change, and the Force Index 0.87.
+- The Negative and Positive Volume Index split each day's price change between them: multiplied together, they give the price index exactly.
+
+**What to keep (my view):** the same one volume study as before. Most of the others add a layer to the same ingredients.
+
+### Levels and chart styles
+
+[Pivot Points](../studies/pivot-points/), [Volume Profile](../studies/volume-profile/), [Anchored VWAP](../studies/anchored-vwap/) and [Heikin-Ashi](../studies/heikin-ashi/) are not oscillators, and do not overlap with the studies above. Pivot Points come from the last period's range, a Volume Profile from where volume traded, and an Anchored VWAP from the volume since a chosen event. Heikin-Ashi is a way of drawing the same bars.
+
 ## A minimal kit (opinion)
 
 If you wanted the fewest studies that still cover the ground:

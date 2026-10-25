@@ -47,6 +47,55 @@ MEASURES = {
         (lambda m, u, lo: (u - lo) / m)(*ind.bollinger(c, 20, 2)),
     ),
     "cmf-obv": lambda h, l, c, v: (ind.cmf(h, l, c, v, 20), ind.obv(c, v).diff(20)),
+    "wma-sma-distance": lambda h, l, c, v: (c - ind.wma(c, 20), c - ind.sma(c, 20)),
+    "wma-ema-distance": lambda h, l, c, v: (c - ind.wma(c, 20), c - ind.ema(c, 20)),
+    "dema-ema-distance": lambda h, l, c, v: (c - ind.dema(c, 20), c - ind.ema(c, 20)),
+    "tema-dema-distance": lambda h, l, c, v: (c - ind.tema(c, 20), c - ind.dema(c, 20)),
+    "kama-ema-distance": lambda h, l, c, v: (c - ind.kama(c), c - ind.ema(c, 20)),
+    "mcginley-ema-distance": lambda h, l, c, v: (c - ind.mcginley(c), c - ind.ema(c, 14)),
+    "envelope-pctb": lambda h, l, c, v: (
+        (lambda m, u, lo: (c - lo) / (u - lo))(*ind.envelope(c, 20, 2.5)),
+        _bb_pctb(c),
+    ),
+    "vortex-di": lambda h, l, c, v: (
+        (lambda a, b: a - b)(*ind.vortex(h, l, c, 14)),
+        (lambda adx, p, m: (p - m) / 100)(*ind.adx(h, l, c, 14)),
+    ),
+    "supertrend-psar-distance": lambda h, l, c, v: (c - ind.supertrend(h, l, c, 10, 3), c - ind.psar(h, l)),
+    "linreg-sma-distance": lambda h, l, c, v: (c - ind.linreg(c, 20)[0], c - ind.sma(c, 20)),
+    "srsi-stoch": lambda h, l, c, v: (ind.stoch_rsi(c)[0], ind.stochastic(h, l, c)[0]),
+    "srsi-rsi": lambda h, l, c, v: (ind.stoch_rsi(c)[0], ind.rsi(c, 14)),
+    "smi-stoch": lambda h, l, c, v: (ind.smi(h, l, c)[0], ind.stochastic(h, l, c)[0]),
+    "tsi-macd": lambda h, l, c, v: (ind.tsi(c)[0], ind.macd(c)[0]),
+    "tsi-rsi": lambda h, l, c, v: (ind.tsi(c)[0], ind.rsi(c, 14)),
+    "kst-macd": lambda h, l, c, v: (ind.kst(c)[0], ind.macd(c)[0]),
+    "kst-tsi": lambda h, l, c, v: (ind.kst(c)[0], ind.tsi(c)[0]),
+    "dpo-sma-distance": lambda h, l, c, v: (ind.dpo(c, 20), c - ind.sma(c, 20)),
+    "coppock-roc": lambda h, l, c, v: (ind.coppock(c), ind.roc(c, 12)),
+    "fisher-stoch": lambda h, l, c, v: (ind.fisher(h, l)[0], ind.stochastic(h, l, c)[0]),
+    "rmi-rsi": lambda h, l, c, v: (ind.rmi(c, 14, 5), ind.rsi(c, 14)),
+    "elder-ema-distance": lambda h, l, c, v: ((lambda b, e: (b + e) / 2)(*ind.elder_ray(h, l, c, 13)), c - ind.ema(c, 13)),
+    "crsi-rsi14": lambda h, l, c, v: (ind.connors_rsi(c), ind.rsi(c, 14)),
+    "crsi-rsi3": lambda h, l, c, v: (ind.connors_rsi(c), ind.rsi(c, 3)),
+    "hv-atr": lambda h, l, c, v: (ind.historical_volatility(c), ind.atr(h, l, c)),
+    "hv-sd-pct": lambda h, l, c, v: (ind.historical_volatility(c), ind.std_dev(c) / c),
+    "sd-atr": lambda h, l, c, v: (ind.std_dev(c), ind.atr(h, l, c)),
+    "cv-atr-level": lambda h, l, c, v: (ind.chaikin_volatility(h, l), ind.atr(h, l, c)),
+    "chop-adx": lambda h, l, c, v: (ind.choppiness(h, l, c), ind.adx(h, l, c)[0]),
+    "ulcer-hv": lambda h, l, c, v: (ind.ulcer(c), ind.historical_volatility(c)),
+    "adl-obv": lambda h, l, c, v: (ind.accumulation_distribution(h, l, c, v).diff(20), ind.obv(c, v).diff(20)),
+    "co-cmf": lambda h, l, c, v: (ind.chaikin_oscillator(h, l, c, v), ind.cmf(h, l, c, v, 20)),
+    "mfi-rsi": lambda h, l, c, v: (ind.mfi(h, l, c, v), ind.rsi(c, 14)),
+    "force-obv": lambda h, l, c, v: (ind.force_index(c, v), ind.obv(c, v).diff(13)),
+    "force-roc": lambda h, l, c, v: (ind.force_index(c, v), ind.roc(c, 12)),
+    "emv-roc": lambda h, l, c, v: (ind.ease_of_movement(h, l, v), ind.roc(c, 12)),
+    "pvt-obv": lambda h, l, c, v: (ind.price_volume_trend(c, v).diff(20), ind.obv(c, v).diff(20)),
+    "pvt-close": lambda h, l, c, v: (ind.price_volume_trend(c, v), c),
+    "pvt-roc": lambda h, l, c, v: (ind.price_volume_trend(c, v).diff(20), ind.roc(c, 20)),
+    "bmp-cmf": lambda h, l, c, v: (ind.balance_of_market_power(_sample_open(), h, l, c), ind.cmf(h, l, c, v, 20)),
+    "klinger-co": lambda h, l, c, v: (ind.klinger(h, l, c, v)[0], ind.chaikin_oscillator(h, l, c, v)),
+    "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
+    "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
 }
 
@@ -67,6 +116,31 @@ def _id_cmo_cutler(h, l, c, v):
 def _id_ppo_macd(h, l, c, v):
     slow = c.ewm(span=26, adjust=False).mean()
     return (ind.ppo(c)[0] * slow / 100 - ind.macd(c)[0]).abs().max()
+
+
+def _id_rmi_rsi(h, l, c, v):
+    return (ind.rmi(c, 14, 1) - ind.rsi(c, 14)).abs().max()
+
+
+def _id_stddev_bollinger(h, l, c, v):
+    _, up, lo = ind.bollinger(c, 20, 2)
+    return ((up - lo) - 4 * ind.std_dev(c, 20)).abs().max()
+
+
+def _id_avwap_vwap(h, l, c, v):
+    return (ind.anchored_vwap(h, l, c, v, 0) - ind.vwap(h, l, c, v, pd.Series(0, index=c.index))).abs().max()
+
+
+def _id_adl_cmf(h, l, c, v):
+    return (ind.accumulation_distribution(h, l, c, v).diff(20) / v.rolling(20).sum() - ind.cmf(h, l, c, v, 20)).abs().max()
+
+
+def _id_co_macd(h, l, c, v):
+    return (ind.chaikin_oscillator(h, l, c, v) - ind.macd(ind.accumulation_distribution(h, l, c, v), 3, 10)[0]).abs().max()
+
+
+def _id_vo_ppo(h, l, c, v):
+    return (ind.volume_oscillator(v, 5, 10) - ind.ppo(v, 5, 10, 9)[0]).abs().max()
 
 
 def _id_aroon_donchian(h, l, c, v):
@@ -91,6 +165,12 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "volume-oscillator-ppo": _id_vo_ppo,
+    "adl-cmf": _id_adl_cmf,
+    "chaikin-osc-macd-of-adl": _id_co_macd,
+    "avwap-vwap": _id_avwap_vwap,
+    "stddev-bollinger": _id_stddev_bollinger,
+    "rmi-rsi-momentum-1": _id_rmi_rsi,
 }
 
 # ---- the pairs: (declaring study, other study) -> strength, identity check, correlation measure ----------------
@@ -109,6 +189,45 @@ PAIRS = {
     ("keltner-channels", "bollinger-bands"): dict(strength="partial", identity=None, corr="keltner-bb-width"),
     ("chaikin-money-flow", "on-balance-volume"): dict(strength="partial", identity=None, corr="cmf-obv"),
     ("aroon", "donchian-channels"): dict(strength="partial", identity="aroon-donchian", corr=None),
+    ("weighted-moving-average", "simple-moving-average"): dict(strength="near", identity=None, corr="wma-sma-distance"),
+    ("weighted-moving-average", "exponential-moving-average"): dict(strength="near", identity=None, corr="wma-ema-distance"),
+    ("double-exponential-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="dema-ema-distance"),
+    ("triple-exponential-moving-average", "double-exponential-moving-average"): dict(strength="partial", identity=None, corr="tema-dema-distance"),
+    ("kaufman-adaptive-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="kama-ema-distance"),
+    ("mcginley-dynamic", "exponential-moving-average"): dict(strength="near", identity=None, corr="mcginley-ema-distance"),
+    ("moving-average-envelope", "bollinger-bands"): dict(strength="partial", identity=None, corr="envelope-pctb"),
+    ("vortex-indicator", "average-directional-index"): dict(strength="partial", identity=None, corr="vortex-di"),
+    ("supertrend", "parabolic-sar"): dict(strength="partial", identity=None, corr="supertrend-psar-distance"),
+    ("stochastic-rsi", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="srsi-stoch"),
+    ("stochastic-momentum-index", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="smi-stoch"),
+    ("true-strength-index", "macd"): dict(strength="near", identity=None, corr="tsi-macd"),
+    ("know-sure-thing", "macd"): dict(strength="near", identity=None, corr="kst-macd"),
+    ("know-sure-thing", "true-strength-index"): dict(strength="partial", identity=None, corr="kst-tsi"),
+    ("coppock-curve", "rate-of-change"): dict(strength="partial", identity=None, corr="coppock-roc"),
+    ("fisher-transform", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="fisher-stoch"),
+    ("relative-momentum-index", "relative-strength-index"): dict(strength="partial", identity="rmi-rsi-momentum-1", corr="rmi-rsi"),
+    ("elder-ray", "exponential-moving-average"): dict(strength="near", identity=None, corr="elder-ema-distance"),
+    ("connors-rsi", "relative-strength-index"): dict(strength="partial", identity=None, corr="crsi-rsi3"),
+    ("standard-deviation", "bollinger-bands"): dict(strength="identical", identity="stddev-bollinger", corr=None),
+    ("historical-volatility", "average-true-range"): dict(strength="partial", identity=None, corr="hv-atr"),
+    ("historical-volatility", "standard-deviation"): dict(strength="partial", identity=None, corr="hv-sd-pct"),
+    ("chaikin-volatility", "average-true-range"): dict(strength="partial", identity=None, corr="cv-atr-roc"),
+    ("relative-volatility-index", "relative-strength-index"): dict(strength="partial", identity=None, corr="rvi-rsi"),
+    ("anchored-vwap", "volume-weighted-average-price"): dict(strength="identical", identity="avwap-vwap", corr=None),
+    ("ulcer-index", "historical-volatility"): dict(strength="partial", identity=None, corr="ulcer-hv"),
+    ("accumulation-distribution", "on-balance-volume"): dict(strength="partial", identity=None, corr="adl-obv"),
+    ("accumulation-distribution", "chaikin-money-flow"): dict(strength="identical", identity="adl-cmf", corr=None),
+    ("chaikin-oscillator", "macd"): dict(strength="identical", identity="chaikin-osc-macd-of-adl", corr=None),
+    ("chaikin-oscillator", "chaikin-money-flow"): dict(strength="partial", identity=None, corr="co-cmf"),
+    ("money-flow-index", "relative-strength-index"): dict(strength="partial", identity=None, corr="mfi-rsi"),
+    ("force-index", "on-balance-volume"): dict(strength="partial", identity=None, corr="force-obv"),
+    ("force-index", "rate-of-change"): dict(strength="partial", identity=None, corr="force-roc"),
+    ("ease-of-movement", "rate-of-change"): dict(strength="partial", identity=None, corr="emv-roc"),
+    ("price-volume-trend", "on-balance-volume"): dict(strength="partial", identity=None, corr="pvt-obv"),
+    ("price-volume-trend", "rate-of-change"): dict(strength="near", identity=None, corr="pvt-roc"),
+    ("balance-of-market-power", "chaikin-money-flow"): dict(strength="partial", identity=None, corr="bmp-cmf"),
+    ("klinger-oscillator", "chaikin-oscillator"): dict(strength="partial", identity=None, corr="klinger-co"),
+    ("volume-oscillator", "percentage-price-oscillator"): dict(strength="identical", identity="volume-oscillator-ppo", corr=None),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -127,7 +246,79 @@ QUOTES = [
     ("rate-of-change", 2, "roc-rsi"),
     ("keltner-channels", 2, "keltner-bb-width"),
     ("chaikin-money-flow", 2, "cmf-obv"),
+    ("weighted-moving-average", 2, "wma-sma-distance"),
+    ("weighted-moving-average", 2, "wma-ema-distance"),
+    ("double-exponential-moving-average", 2, "dema-ema-distance"),
+    ("triple-exponential-moving-average", 2, "tema-dema-distance"),
+    ("kaufman-adaptive-moving-average", 2, "kama-ema-distance"),
+    ("mcginley-dynamic", 2, "mcginley-ema-distance"),
+    ("moving-average-envelope", 2, "envelope-pctb"),
+    ("vortex-indicator", 2, "vortex-di"),
+    ("supertrend", 2, "supertrend-psar-distance"),
+    ("linear-regression", 2, "linreg-sma-distance"),
+    ("stochastic-rsi", 2, "srsi-stoch"),
+    ("stochastic-rsi", 2, "srsi-rsi"),
+    ("stochastic-momentum-index", 2, "smi-stoch"),
+    ("true-strength-index", 2, "tsi-macd"),
+    ("true-strength-index", 2, "tsi-rsi"),
+    ("know-sure-thing", 2, "kst-macd"),
+    ("know-sure-thing", 2, "kst-tsi"),
+    ("detrended-price-oscillator", 2, "dpo-sma-distance"),
+    ("coppock-curve", 2, "coppock-roc"),
+    ("fisher-transform", 2, "fisher-stoch"),
+    ("relative-momentum-index", 2, "rmi-rsi"),
+    ("elder-ray", 2, "elder-ema-distance"),
+    ("connors-rsi", 2, "crsi-rsi3"),
+    ("connors-rsi", 2, "crsi-rsi14"),
+    ("historical-volatility", 2, "hv-atr"),
+    ("historical-volatility", 2, "hv-sd-pct"),
+    ("standard-deviation", 2, "sd-atr"),
+    ("chaikin-volatility", 2, "cv-atr-roc"),
+    ("chaikin-volatility", 2, "cv-atr-level"),
+    ("relative-volatility-index", 2, "rvi-rsi"),
+    ("choppiness-index", 2, "chop-adx"),
+    ("ulcer-index", 2, "ulcer-hv"),
+    ("accumulation-distribution", 2, "adl-obv"),
+    ("chaikin-oscillator", 2, "co-cmf"),
+    ("money-flow-index", 2, "mfi-rsi"),
+    ("force-index", 2, "force-obv"),
+    ("force-index", 2, "force-roc"),
+    ("ease-of-movement", 2, "emv-roc"),
+    ("price-volume-trend", 2, "pvt-obv"),
+    ("price-volume-trend", 2, "pvt-roc"),
+    ("price-volume-trend", 3, "pvt-close"),
+    ("balance-of-market-power", 2, "bmp-cmf"),
+    ("klinger-oscillator", 2, "klinger-co"),
     ("guides/overlaps", 2, "adx-aroon"),
+    ("guides/overlaps", 2, "mcginley-ema-distance"),
+    ("guides/overlaps", 2, "wma-sma-distance"),
+    ("guides/overlaps", 2, "wma-ema-distance"),
+    ("guides/overlaps", 2, "dema-ema-distance"),
+    ("guides/overlaps", 2, "kama-ema-distance"),
+    ("guides/overlaps", 2, "linreg-sma-distance"),
+    ("guides/overlaps", 2, "envelope-pctb"),
+    ("guides/overlaps", 2, "tsi-macd"),
+    ("guides/overlaps", 2, "kst-macd"),
+    ("guides/overlaps", 2, "kst-tsi"),
+    ("guides/overlaps", 2, "coppock-roc"),
+    ("guides/overlaps", 2, "srsi-stoch"),
+    ("guides/overlaps", 2, "srsi-rsi"),
+    ("guides/overlaps", 2, "smi-stoch"),
+    ("guides/overlaps", 2, "fisher-stoch"),
+    ("guides/overlaps", 2, "rmi-rsi"),
+    ("guides/overlaps", 2, "crsi-rsi3"),
+    ("guides/overlaps", 2, "mfi-rsi"),
+    ("guides/overlaps", 2, "rvi-rsi"),
+    ("guides/overlaps", 2, "hv-atr"),
+    ("guides/overlaps", 2, "sd-atr"),
+    ("guides/overlaps", 2, "cv-atr-roc"),
+    ("guides/overlaps", 2, "ulcer-hv"),
+    ("guides/overlaps", 2, "chop-adx"),
+    ("guides/overlaps", 2, "adl-obv"),
+    ("guides/overlaps", 2, "co-cmf"),
+    ("guides/overlaps", 2, "pvt-roc"),
+    ("guides/overlaps", 2, "emv-roc"),
+    ("guides/overlaps", 2, "force-roc"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),
     ("guides/overlaps", 2, "roc-macd"),
@@ -140,6 +331,10 @@ QUOTES = [
     ("guides/overlaps", 2, "cmf-obv"),
     ("guides/overlaps", 2, "ema-sma-distance"),
 ]
+
+
+def _sample_open():
+    return pd.read_csv(pathlib_path(), index_col=0)["open"]
 
 
 def sample():
