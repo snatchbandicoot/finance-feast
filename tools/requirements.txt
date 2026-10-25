@@ -1,0 +1,4 @@
+# Python tools (verification and chart generation). The site build itself needs only Node.
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8

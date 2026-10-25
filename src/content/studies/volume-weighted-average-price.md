@@ -47,6 +47,14 @@ Here `session` labels which session each bar belongs to, for example the calenda
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/volume-weighted-average-price-dark.svg">
+<img src="../../charts/volume-weighted-average-price-light.svg" alt="Price with VWAP across three sessions, and volume below" width="840" height="540">
+</picture>
+<figcaption>Synthetic 5-minute data. VWAP starts fresh each session. In session 1 price spent most of its time above VWAP. In session 2 it spent most of its time below and ended beneath it. As each session fills with volume, the line moves less and less.</figcaption>
+</figure>
+
 - **Price above or below the line.** Above VWAP means buyers have been paying more than the day's average recently, and below means sellers have accepted less. It describes the day so far. It does not say what comes next.
 - **As a reference.** Traders often watch for price returning to VWAP after moving away from it, because it marks the average cost. Whether price respects it as a "level" is a matter of habit and attention, not a mathematical property.
 - **Distance from VWAP.** Price far above or below VWAP is stretched relative to the day's average. This is context, not a signal on its own.

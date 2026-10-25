@@ -29,4 +29,10 @@ automatically from the `verdict` frontmatter field, so don't repeat it in the su
 **Status.** New pages are `draft`. Only the owner moves a page to `reviewed`, after checking the
 "Avoid when" and "Is it useful?" sections.
 
+**Charts.** One example chart per page, placed at the top of "How to read it", with a caption that
+states only what the chart shows, with the numbers checked against the data. Charts are drawn by
+`tools/make_charts.py` from synthetic data, never hand-edited, and are always described as synthetic.
+Hide warm-up values of recursive indicators. Use at most blue and orange for series, with neutral ink
+for price, a legend whenever a panel has two or more series, and a light and a dark variant.
+
 **Footer.** Every page carries the site-wide "educational content, not investment advice" footer.

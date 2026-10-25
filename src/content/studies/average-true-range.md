@@ -44,6 +44,14 @@ This starts the average at the first true range. Wilder's original starts with t
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/average-true-range-dark.svg">
+<img src="../../charts/average-true-range-light.svg" alt="Price above, and 14-bar average true range below" width="840" height="590">
+</picture>
+<figcaption>Synthetic data. The first 30 values are hidden while the average warms up. ATR averaged about 1.6 in the uptrend and 2.3 in the selloff, peaking near 2.9. It rose as price fell and eased as price recovered, because it measures the size of moves and not their direction.</figcaption>
+</figure>
+
 - **Level.** A high ATR means bars have been large lately. A low ATR means they have been small. Compare it with its own history, not with a fixed number.
 - **Rising ATR.** Volatility is increasing. This often accompanies sharp moves in either direction, and it is common around breakdowns and panics.
 - **Falling ATR.** Volatility is shrinking, as in a quiet or consolidating market.

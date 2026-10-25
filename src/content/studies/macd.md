@@ -48,6 +48,14 @@ def macd(close, fast=12, slow=26, signal=9):
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/macd-dark.svg">
+<img src="../../charts/macd-light.svg" alt="Price above, and MACD line, signal line and histogram below" width="840" height="590">
+</picture>
+<figcaption>Synthetic data. The first 40 values are hidden while the averages warm up. The MACD line crossed the signal line 12 times in the uptrend and 14 times in the range, so a crossover alone is a weak signal even while price is trending. MACD bottomed two bars before the price low.</figcaption>
+</figure>
+
 - **Above or below zero.** MACD above zero means the fast average is above the slow one, which is how an uptrend looks in averages. Crossing zero is *exactly* the moment the 12 and 26 EMAs cross. It adds no information beyond a two-average crossover. It is the same event shown differently.
 - **Line crossing the signal line.** This happens earlier than a zero cross, because the signal line trails the MACD line. It is the most common trigger, and it is a signal that momentum has turned, not that price will follow.
 - **Histogram.** Bars shrinking toward zero show the gap is closing, so momentum is fading, often before the lines cross. This is the earliest of the three readings and also the noisiest.

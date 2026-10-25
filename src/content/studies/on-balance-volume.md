@@ -46,6 +46,14 @@ def obv(close, volume):
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/on-balance-volume-dark.svg">
+<img src="../../charts/on-balance-volume-light.svg" alt="Price above, and on-balance volume below" width="840" height="590">
+</picture>
+<figcaption>Synthetic data. OBV ends at a new high of about 25 million even though price is 17% below its range high. In this sample volume grew with the size of the moves, so the large rebound bars outweighed the selloff in the running total. This is why comparing OBV with an old price high is not a forecast.</figcaption>
+</figure>
+
 - **The level means nothing.** OBV depends on where you started counting. An OBV of 5 million tells you nothing on its own. Look at the *shape*: is it rising, falling or flat?
 - **Confirmation.** Price and OBV both making new highs together says volume is backing the move.
 - **Divergence.** Price makes a new high while OBV does not. This is read as "the move is not supported by volume". Like every divergence, it shows up often and fails often.
