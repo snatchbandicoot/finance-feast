@@ -122,3 +122,44 @@ def psar(high, low, step=0.02, step_max=0.2):
             elif l[i] < ep:
                 ep, af = l[i], min(af + step, step_max)
     return pd.Series(sar, index=high.index)
+
+
+def aroon(high, low, n=25):
+    up = high.rolling(n + 1).apply(lambda w: 100 * (n - np.argmax(w[::-1])) / n, raw=True)
+    down = low.rolling(n + 1).apply(lambda w: 100 * (n - np.argmin(w[::-1])) / n, raw=True)
+    return up, down, up - down
+
+
+def donchian(high, low, n=20):
+    upper = high.rolling(n).max()
+    lower = low.rolling(n).min()
+    return upper, (upper + lower) / 2, lower
+
+
+def keltner(high, low, close, n=20, atr_n=10, k=2):
+    mid = close.ewm(span=n, adjust=False).mean()
+    width = k * atr(high, low, close, atr_n)
+    return mid, mid + width, mid - width
+
+
+def cmf(high, low, close, volume, n=20):
+    spread = (high - low).replace(0, np.nan)
+    multiplier = (((close - low) - (high - close)) / spread).fillna(0)
+    flow = multiplier * volume
+    return flow.rolling(n).sum() / volume.rolling(n).sum()
+
+
+def ichimoku(high, low, close, conversion=9, base=26, span_b=52, shift=26):
+    def midpoint(n):
+        return (high.rolling(n).max() + low.rolling(n).min()) / 2
+
+    tenkan = midpoint(conversion)
+    kijun = midpoint(base)
+    senkou_a = (tenkan + kijun) / 2
+    senkou_b = midpoint(span_b)
+    # Each series is labelled with the bar it is drawn at: the cloud `shift` bars ahead, the lagging span behind.
+    senkou_a.index = senkou_a.index + shift
+    senkou_b.index = senkou_b.index + shift
+    chikou = close.copy()
+    chikou.index = chikou.index - shift
+    return tenkan, kijun, senkou_a, senkou_b, chikou

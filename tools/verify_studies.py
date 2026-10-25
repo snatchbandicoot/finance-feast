@@ -6,7 +6,8 @@ The functions under test live in tools/indicators.py, and their code is shown on
 import numpy as np
 import pandas as pd
 
-from indicators import adx, atr, bollinger, cci, ema, macd, obv, psar, roc, rsi, sma, stochastic, vwap, williams_r
+from indicators import (aroon, adx, atr, bollinger, cci, cmf, donchian, ema, ichimoku, keltner, macd, obv, psar,
+                        roc, rsi, sma, stochastic, vwap, williams_r)
 
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
@@ -399,6 +400,121 @@ print("ok  worked examples (ROC, Williams %R, CCI, ADX, Parabolic SAR)")
 
 
 # =====================================================================================
+# Aroon, Donchian, Keltner, Chaikin Money Flow, Ichimoku
+# =====================================================================================
+def aroon_ref(h, l, n):
+    up, dn = [np.nan] * len(h), [np.nan] * len(h)
+    for i in range(n, len(h)):
+        wh, wl = h[i - n : i + 1], l[i - n : i + 1]
+        # bars since the most recent high (or low) inside the n + 1 bar window
+        since_high = min(k for k in range(n + 1) if wh[n - k] == max(wh))
+        since_low = min(k for k in range(n + 1) if wl[n - k] == min(wl))
+        up[i], dn[i] = 100 * (n - since_high) / n, 100 * (n - since_low) / n
+    return np.array(up), np.array(dn)
+
+
+def donchian_ref(h, l, n):
+    up, mid, lo = [np.nan] * len(h), [np.nan] * len(h), [np.nan] * len(h)
+    for i in range(n - 1, len(h)):
+        up[i], lo[i] = max(h[i - n + 1 : i + 1]), min(l[i - n + 1 : i + 1])
+        mid[i] = (up[i] + lo[i]) / 2
+    return np.array(up), np.array(mid), np.array(lo)
+
+
+def cmf_ref(h, l, c, v, n):
+    out = [np.nan] * len(c)
+    mfv = []
+    for i in range(len(c)):
+        rng = h[i] - l[i]
+        mult = 0.0 if rng == 0 else ((c[i] - l[i]) - (h[i] - c[i])) / rng
+        mfv.append(mult * v[i])
+    for i in range(n - 1, len(c)):
+        out[i] = sum(mfv[i - n + 1 : i + 1]) / sum(v[i - n + 1 : i + 1])
+    return np.array(out)
+
+
+def ichimoku_ref(h, l, conversion, base, span_b):
+    def mid(n):
+        out = [np.nan] * len(h)
+        for i in range(n - 1, len(h)):
+            out[i] = (max(h[i - n + 1 : i + 1]) + min(l[i - n + 1 : i + 1])) / 2
+        return np.array(out)
+
+    return mid(conversion), mid(base), mid(span_b)
+
+
+up_a, dn_a, osc_a = aroon(hi, lo, 25)
+ar_u, ar_d = aroon_ref(H, L, 25)
+check("Aroon Up(25) vs loop", up_a, ar_u, 1e-9)
+check("Aroon Down(25) vs loop", dn_a, ar_d, 1e-9)
+check("Aroon Oscillator vs loop", osc_a, ar_u - ar_d, 1e-9)
+assert up_a.dropna().between(0, 100).all() and dn_a.dropna().between(0, 100).all()
+print("ok  Aroon stays within 0 to 100")
+# Aroon Up is 100 exactly when the bar's high ties or exceeds the highest high of the previous 25 bars (a new 25-bar high);
+# Aroon Down is 100 exactly when its low ties or undercuts the previous 25 lows.
+prior_high = hi.rolling(25).max().shift(1)
+prior_low = lo.rolling(25).min().shift(1)
+valid = up_a.notna()
+assert ((up_a[valid] == 100) == (hi[valid] >= prior_high[valid])).all()
+assert ((dn_a[valid] == 100) == (lo[valid] <= prior_low[valid])).all()
+print("ok  Aroon = 100 exactly when a new 25-bar high (or low) is set, the same event as a Donchian breakout")
+
+du, dm, dl = donchian(hi, lo, 20)
+dur, dmr, dlr = donchian_ref(H, L, 20)
+check("Donchian upper vs loop", du, dur, 1e-9)
+check("Donchian middle vs loop", dm, dmr, 1e-9)
+check("Donchian lower vs loop", dl, dlr, 1e-9)
+valid = du.notna()  # comparisons with NaN are False, so skip the warm-up bars explicitly
+assert (hi[valid] <= du[valid]).all() and (lo[valid] >= dl[valid]).all()
+print("ok  Donchian channel always contains the current bar's high and low")
+
+km, ku, kl = keltner(hi, lo, close, 20, 10, 2)
+k_mid = ema_ref(p, 20)
+k_atr = atr_ref_same_seed(H, L, p, 10)
+check("Keltner middle vs EMA loop", km, k_mid, 1e-9)
+check("Keltner upper vs EMA + 2 x ATR loops", ku, k_mid + 2 * k_atr, 1e-9)
+check("Keltner lower vs EMA - 2 x ATR loops", kl, k_mid - 2 * k_atr, 1e-9)
+
+cm = cmf(hi, lo, close, vol, 20)
+check("CMF(20) vs loop", cm, cmf_ref(H, L, p, V, 20), 1e-9)
+assert cm.dropna().between(-1, 1).all()
+print("ok  CMF stays within -1 to +1")
+# a bar with no range counts as zero instead of dividing by zero
+flat = cmf(pd.Series([10.0, 10.0, 12.0]), pd.Series([10.0, 10.0, 10.0]), pd.Series([10.0, 10.0, 11.0]), pd.Series([5.0, 5.0, 10.0]), 3)
+assert np.isfinite(flat.iloc[-1]) and abs(flat.iloc[-1] - 0.0) < 1e-12
+print("ok  CMF handles a bar with no range")
+
+tk, kj, sa, sb, ch = ichimoku(hi, lo, close)
+tr_, kr_, sbr_ = ichimoku_ref(H, L, 9, 26, 52)
+check("Ichimoku Tenkan(9) vs loop", tk, tr_, 1e-9)
+check("Ichimoku Kijun(26) vs loop", kj, kr_, 1e-9)
+sa_ref = (tr_ + kr_) / 2
+# Senkou A and B are labelled 26 bars ahead, the Chikou span 26 bars behind
+check("Ichimoku Senkou A (drawn 26 bars ahead)", sa.to_numpy(), sa_ref, 1e-9)
+check("Ichimoku Senkou B (drawn 26 bars ahead)", sb.to_numpy(), sbr_, 1e-9)
+assert sa.index[0] == 26 and sa.index[-1] == len(close) - 1 + 26 and ch.index[0] == -26 and ch.index[-1] == len(close) - 1 - 26
+assert np.array_equal(ch.to_numpy(), close.to_numpy())
+print("ok  Ichimoku shifts: cloud 26 bars ahead, lagging span 26 bars behind")
+
+# ---- worked examples quoted on the pages --------------------------------------------
+# Aroon: n = 4, highs 10, 12, 11, 11.5, 11.2 -> highest high 3 bars ago -> Up 25; lows 9, 10, 9.5, 9.8, 9.4 -> lowest low 4 bars ago -> Down 0
+au, ad, ao = aroon(pd.Series([10.0, 12, 11, 11.5, 11.2]), pd.Series([9.0, 10, 9.5, 9.8, 9.4]), 4)
+assert au.iloc[-1] == 25.0 and ad.iloc[-1] == 0.0 and ao.iloc[-1] == 25.0
+# Donchian: highest high 14, lowest low 8 -> middle 11; a close of 14.5 breaks the prior upper channel of 14
+assert (14 + 8) / 2 == 11 and 14.5 > 14
+# Keltner: middle 100, ATR 2, multiplier 2 -> bands 104 and 96
+assert 100 + 2 * 2 == 104 and 100 - 2 * 2 == 96
+# CMF: bar 1 high 12 low 10 close 11.5 volume 100 -> multiplier 0.5; bar 2 close 10.5 volume 300 -> -0.5; CMF = (50 - 150) / 400 = -0.25
+c2 = cmf(pd.Series([12.0, 12.0]), pd.Series([10.0, 10.0]), pd.Series([11.5, 10.5]), pd.Series([100.0, 300.0]), 2)
+assert abs(c2.iloc[-1] - (-0.25)) < 1e-12
+# Ichimoku on six bars with short settings (2, 3, 4, shift 2): at bar 3 Tenkan 11, Kijun 11, Senkou A 11, Senkou B 10.5, drawn at bar 5
+ex_h, ex_l, ex_c = pd.Series([10.0, 12, 11, 13, 12, 14]), pd.Series([8.0, 9, 9, 10, 10, 11]), pd.Series([9.0, 11, 10, 12, 11, 13])
+t_, k_, a_, b_, c_ = ichimoku(ex_h, ex_l, ex_c, 2, 3, 4, 2)
+assert t_.iloc[3] == 11 and k_.iloc[3] == 11 and a_.loc[5] == 11 and b_.loc[5] == 10.5
+print("ok  worked examples (Aroon, Donchian, Keltner, CMF, Ichimoku)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
@@ -422,6 +538,11 @@ PAGES = {
     "commodity-channel-index": "cci",
     "williams-percent-r": "williams_r",
     "rate-of-change": "roc",
+    "aroon": "aroon",
+    "donchian-channels": "donchian",
+    "keltner-channels": "keltner",
+    "chaikin-money-flow": "cmf",
+    "ichimoku-cloud": "ichimoku",
 }
 studies = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
 for slug, fn in PAGES.items():

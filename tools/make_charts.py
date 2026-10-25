@@ -58,10 +58,10 @@ def regimes():
     return out
 
 
-def new_fig(t, ratios, height):
+def new_fig(t, ratios, height, top=None):
     fig = plt.figure(figsize=(8.4, height), facecolor=t["surface"])
     gs = fig.add_gridspec(len(ratios), 1, height_ratios=ratios, hspace=0.42, left=0.07, right=0.985,
-                          top=0.90 if len(ratios) == 1 else 0.87, bottom=0.085)
+                          top=top or (0.90 if len(ratios) == 1 else 0.87), bottom=0.085)
     axes = [fig.add_subplot(gs[i]) for i in range(len(ratios))]
     for ax in axes:
         ax.set_facecolor(t["surface"])
@@ -81,8 +81,9 @@ def panel_label(ax, t, text):
     ax.text(0, 1.04, text, transform=ax.transAxes, color=t["ink2"], fontsize=9, va="bottom", ha="left")
 
 
-def legend(ax, t, handles, labels):
-    leg = ax.legend(handles, labels, loc="lower right", bbox_to_anchor=(1.0, 1.0), ncol=len(labels),
+def legend(ax, t, handles, labels, left=False):
+    leg = ax.legend(handles, labels, loc="lower left" if left else "lower right",
+                    bbox_to_anchor=(0.0, 1.0) if left else (1.0, 1.0), ncol=len(labels),
                     frameon=False, fontsize=8.5, handlelength=1.6, columnspacing=1.4)
     for txt in leg.get_texts():
         txt.set_color(t["ink2"])
@@ -347,6 +348,95 @@ def chart_roc(t):
     return fig
 
 
+def chart_aroon(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Aroon (25) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    up, down, _ = ind.aroon(H, L, 25)
+    for y in (30, 70):
+        hline(ax2, t, y)
+    ax2.plot(up, color=t["pink"], linewidth=LINE, label="Aroon Up", zorder=4)
+    ax2.plot(down, color=t["teal"], linewidth=LINE, label="Aroon Down", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Aroon Up and Aroon Down, with the 30 and 70 lines")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_donchian(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Donchian Channels (20) on synthetic daily data")
+    price_panel(ax, t)
+    upper, mid, lower = ind.donchian(H, L, 20)
+    ax.fill_between(C.index, lower, upper, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(upper, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(lower, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(mid, color=t["pink"], linewidth=LINE, label="Middle", zorder=4)
+    pad = (upper.max() - lower.min()) * 0.06
+    ax.set_ylim(lower.min() - pad, upper.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], h[1], Patch(facecolor=t["pink"], alpha=0.25, linewidth=0)], [l[0], l[1], "20-bar highest high and lowest low"], left=True)
+    return fig
+
+
+def chart_keltner(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Keltner Channels and Bollinger Bands on synthetic daily data")
+    price_panel(ax, t)
+    km, ku, kl = (warm(x, 40) for x in ind.keltner(H, L, C, 20, 10, 2))
+    bm, bu, bl = ind.bollinger(C, 20, 2)
+    ax.fill_between(C.index, kl, ku, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(ku, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(kl, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(km, color=t["pink"], linewidth=LINE, zorder=4)
+    ax.plot(bu, color=t["teal"], linewidth=1.3, zorder=5)
+    ax.plot(bl, color=t["teal"], linewidth=1.3, zorder=5)
+    lo_, hi_ = min(kl.min(), bl.min()), max(ku.max(), bu.max())
+    pad = (hi_ - lo_) * 0.06
+    ax.set_ylim(lo_ - pad, hi_ + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    from matplotlib.lines import Line2D
+    legend(ax, t, [h[0], Patch(facecolor=t["pink"], alpha=0.25, linewidth=0), Line2D([], [], color=t["teal"], linewidth=1.3)],
+           [l[0], "Keltner (EMA 20, 2 x ATR 10)", "Bollinger (20, 2)"], left=True)
+    return fig
+
+
+def chart_cmf(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Chaikin Money Flow (20) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    c = ind.cmf(H, L, C, V, 20)
+    hline(ax2, t, 0)
+    ax2.plot(c, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = max(abs(c.min()), abs(c.max())) * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "CMF (20), from -1 to +1")
+    return fig
+
+
+def chart_ichimoku(t):
+    from matplotlib.lines import Line2D
+    ahead = 26
+    fig, (ax,) = new_fig(t, [1], 4.8, top=0.85)
+    heading(fig, t, "Ichimoku (9, 26, 52) on synthetic daily data")
+    price_panel(ax, t, 0, len(daily) - 1 + ahead)
+    tenkan, kijun, a, b, _ = ind.ichimoku(H, L, C)
+    both = pd.concat([a, b], axis=1).dropna()
+    ax.fill_between(both.index, both.iloc[:, 0], both.iloc[:, 1], color=t["blue"], alpha=0.14, linewidth=0, zorder=2)
+    ax.plot(a, color=t["blue"], linewidth=0.9, zorder=3)
+    ax.plot(b, color=t["blue"], linewidth=0.9, zorder=3)
+    ax.plot(kijun, color=t["teal"], linewidth=LINE, label="Kijun (26)", zorder=4)
+    ax.plot(tenkan, color=t["pink"], linewidth=LINE, label="Tenkan (9)", zorder=5)
+    ax.axvline(len(daily) - 0.5, color=t["muted"], linewidth=0.8, zorder=1)
+    ax.text(len(daily) + 1, 0.04, "projected\ncloud", transform=ax.get_xaxis_transform(), color=t["muted"], fontsize=7.5, va="bottom", ha="left")
+    lo_ = min(C.min(), both.min().min()); hi_ = max(C.max(), both.max().max())
+    pad = (hi_ - lo_) * 0.06
+    ax.set_ylim(lo_ - pad, hi_ + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], h[2], h[1], Patch(facecolor=t["blue"], alpha=0.3, linewidth=0)], [l[0], l[2], l[1], "Cloud (Senkou A and B)"], left=True)
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -362,6 +452,11 @@ CHARTS = {
     "commodity-channel-index": chart_cci,
     "williams-percent-r": chart_williams,
     "rate-of-change": chart_roc,
+    "aroon": chart_aroon,
+    "donchian-channels": chart_donchian,
+    "keltner-channels": chart_keltner,
+    "chaikin-money-flow": chart_cmf,
+    "ichimoku-cloud": chart_ichimoku,
 }
 
 if __name__ == "__main__":
