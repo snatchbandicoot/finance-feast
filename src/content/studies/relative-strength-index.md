@@ -11,7 +11,11 @@ status: draft
 related: [simple-moving-average, exponential-moving-average]
 ---
 
-> **Takeaway.** RSI measures the balance of recent gains against recent losses on a 0 to 100 scale. It is useful for judging momentum and for spotting stretched moves in a range. The popular "above 70 means sell" rule is a poor reading of it, especially in a trend.
+> **In plain English.** A score from 0 to 100 for how much of the recent price movement was up versus down. Above 50 means gains have been winning, below 50 means losses have. Think of it as a momentum meter, not a buy or sell switch.
+>
+> **Good for:** judging momentum, and spotting stretched moves in a sideways market.
+>
+> **Watch out for:** strong trends, where "overbought" can last a long time. Selling every reading above 70 tends to lose to the trend.
 
 ## What it measures
 

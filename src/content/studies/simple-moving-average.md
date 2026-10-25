@@ -11,7 +11,11 @@ status: draft
 related: [exponential-moving-average, relative-strength-index]
 ---
 
-> **Takeaway.** A simple moving average smooths price so the drift is easier to see. It always lags, and it predicts nothing. Its value is as a reference line that many people watch, and as the building block for other studies.
+> **In plain English.** The average price over the last N bars, recalculated on every new bar. It smooths out the day-to-day noise so you can see which way price has been drifting. It always trails price, so it describes the past and does not predict.
+>
+> **Good for:** seeing the broad direction, and as a reference line that many traders watch.
+>
+> **Watch out for:** sideways markets, where price keeps crossing the line and every cross misleads.
 
 ## What it measures
 

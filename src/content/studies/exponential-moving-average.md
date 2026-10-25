@@ -11,7 +11,11 @@ status: draft
 related: [simple-moving-average, relative-strength-index]
 ---
 
-> **Takeaway.** An exponential moving average is a simple average that listens more to recent prices. It turns sooner than a simple average of the same length, at the cost of more false turns. It is a tuning choice, not a different kind of information.
+> **In plain English.** Like a simple moving average, but recent prices count for more, so the line turns sooner. The price of that speed is more false turns. It is a faster dial on the same idea, not new information.
+>
+> **Good for:** a quicker trend line, especially on shorter timeframes, and as an ingredient in other studies such as MACD.
+>
+> **Watch out for:** sideways markets, and values that don't match between tools that define "length" or the starting value differently.
 
 ## What it measures
 
