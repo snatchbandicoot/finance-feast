@@ -478,3 +478,40 @@ def ease_of_movement(high, low, volume, n=14, scale=1e6):
     midpoint_move = (high + low) / 2 - (high.shift() + low.shift()) / 2
     box_ratio = (volume / scale) / (high - low)
     return (midpoint_move / box_ratio).rolling(n).mean()
+
+
+def klinger(high, low, close, volume, fast=34, slow=55, signal=13):
+    typical = high + low + close
+    trend = np.where(typical > typical.shift(), 1.0, -1.0)
+    spread = (high - low).to_numpy()
+    cumulative = np.zeros(len(close))
+    cumulative[0] = spread[0]
+    for i in range(1, len(close)):
+        same = trend[i] == trend[i - 1]
+        cumulative[i] = (cumulative[i - 1] if same else spread[i - 1]) + spread[i]
+    force = volume * np.abs(2 * spread / cumulative - 1) * trend * 100
+    line = force.ewm(span=fast, adjust=False).mean() - force.ewm(span=slow, adjust=False).mean()
+    return line, line.ewm(span=signal, adjust=False).mean()
+
+
+def volume_oscillator(volume, fast=5, slow=10):
+    slow_avg = volume.ewm(span=slow, adjust=False).mean()
+    return 100 * (volume.ewm(span=fast, adjust=False).mean() - slow_avg) / slow_avg
+
+
+def negative_volume_index(close, volume, start=1000.0):
+    change = close.pct_change().where(volume < volume.shift(), 0.0).fillna(0.0)
+    return start * (1 + change).cumprod()
+
+
+def positive_volume_index(close, volume, start=1000.0):
+    change = close.pct_change().where(volume > volume.shift(), 0.0).fillna(0.0)
+    return start * (1 + change).cumprod()
+
+
+def price_volume_trend(close, volume):
+    return (close.pct_change().fillna(0.0) * volume).cumsum()
+
+
+def balance_of_market_power(open_, high, low, close, n=14):
+    return ((close - open_) / (high - low).replace(0, np.nan)).rolling(n).mean()

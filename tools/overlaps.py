@@ -89,6 +89,11 @@ MEASURES = {
     "force-obv": lambda h, l, c, v: (ind.force_index(c, v), ind.obv(c, v).diff(13)),
     "force-roc": lambda h, l, c, v: (ind.force_index(c, v), ind.roc(c, 12)),
     "emv-roc": lambda h, l, c, v: (ind.ease_of_movement(h, l, v), ind.roc(c, 12)),
+    "pvt-obv": lambda h, l, c, v: (ind.price_volume_trend(c, v).diff(20), ind.obv(c, v).diff(20)),
+    "pvt-close": lambda h, l, c, v: (ind.price_volume_trend(c, v), c),
+    "pvt-roc": lambda h, l, c, v: (ind.price_volume_trend(c, v).diff(20), ind.roc(c, 20)),
+    "bmp-cmf": lambda h, l, c, v: (ind.balance_of_market_power(_sample_open(), h, l, c), ind.cmf(h, l, c, v, 20)),
+    "klinger-co": lambda h, l, c, v: (ind.klinger(h, l, c, v)[0], ind.chaikin_oscillator(h, l, c, v)),
     "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
     "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
@@ -134,6 +139,10 @@ def _id_co_macd(h, l, c, v):
     return (ind.chaikin_oscillator(h, l, c, v) - ind.macd(ind.accumulation_distribution(h, l, c, v), 3, 10)[0]).abs().max()
 
 
+def _id_vo_ppo(h, l, c, v):
+    return (ind.volume_oscillator(v, 5, 10) - ind.ppo(v, 5, 10, 9)[0]).abs().max()
+
+
 def _id_aroon_donchian(h, l, c, v):
     up, down, _ = ind.aroon(h, l, 25)
     valid = up.notna()
@@ -156,6 +165,7 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "volume-oscillator-ppo": _id_vo_ppo,
     "adl-cmf": _id_adl_cmf,
     "chaikin-osc-macd-of-adl": _id_co_macd,
     "avwap-vwap": _id_avwap_vwap,
@@ -213,6 +223,11 @@ PAIRS = {
     ("force-index", "on-balance-volume"): dict(strength="partial", identity=None, corr="force-obv"),
     ("force-index", "rate-of-change"): dict(strength="partial", identity=None, corr="force-roc"),
     ("ease-of-movement", "rate-of-change"): dict(strength="partial", identity=None, corr="emv-roc"),
+    ("price-volume-trend", "on-balance-volume"): dict(strength="partial", identity=None, corr="pvt-obv"),
+    ("price-volume-trend", "rate-of-change"): dict(strength="near", identity=None, corr="pvt-roc"),
+    ("balance-of-market-power", "chaikin-money-flow"): dict(strength="partial", identity=None, corr="bmp-cmf"),
+    ("klinger-oscillator", "chaikin-oscillator"): dict(strength="partial", identity=None, corr="klinger-co"),
+    ("volume-oscillator", "percentage-price-oscillator"): dict(strength="identical", identity="volume-oscillator-ppo", corr=None),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -269,6 +284,11 @@ QUOTES = [
     ("force-index", 2, "force-obv"),
     ("force-index", 2, "force-roc"),
     ("ease-of-movement", 2, "emv-roc"),
+    ("price-volume-trend", 2, "pvt-obv"),
+    ("price-volume-trend", 2, "pvt-roc"),
+    ("price-volume-trend", 3, "pvt-close"),
+    ("balance-of-market-power", 2, "bmp-cmf"),
+    ("klinger-oscillator", 2, "klinger-co"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),
@@ -282,6 +302,10 @@ QUOTES = [
     ("guides/overlaps", 2, "cmf-obv"),
     ("guides/overlaps", 2, "ema-sma-distance"),
 ]
+
+
+def _sample_open():
+    return pd.read_csv(pathlib_path(), index_col=0)["open"]
 
 
 def sample():

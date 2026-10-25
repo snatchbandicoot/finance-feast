@@ -1265,6 +1265,87 @@ print("ok  worked examples (A/D, Chaikin Oscillator, MFI, Force Index, Ease of M
 
 
 # =====================================================================================
+# Batch H: Klinger, Volume Oscillator, Negative/Positive Volume Index, Price Volume Trend, Balance of Market Power
+# =====================================================================================
+from indicators import (balance_of_market_power, klinger, negative_volume_index, positive_volume_index, price_volume_trend,
+                        volume_oscillator)
+
+volume2 = pd.Series(rng.uniform(1.0e6, 2.0e6, len(close)))
+V2 = volume2.to_numpy()
+open2 = (close.shift().fillna(close.iloc[0]) + (hi - lo) * 0.05)  # an invented open, only to exercise the code
+O2 = open2.to_numpy()
+
+
+def klinger_ref(h, l, c, v, fast, slow, sig):
+    n = len(c)
+    trend, cm, force = [0] * n, [0.0] * n, [0.0] * n
+    for i in range(n):
+        if i == 0:
+            trend[i] = -1  # the first bar has no previous bar, so it counts as not rising
+            cm[i] = h[i] - l[i]
+        else:
+            trend[i] = 1 if (h[i] + l[i] + c[i]) > (h[i - 1] + l[i - 1] + c[i - 1]) else -1
+            cm[i] = (cm[i - 1] if trend[i] == trend[i - 1] else h[i - 1] - l[i - 1]) + (h[i] - l[i])
+        force[i] = v[i] * abs(2 * (h[i] - l[i]) / cm[i] - 1) * trend[i] * 100
+    line = ema_ref(np.array(force), fast) - ema_ref(np.array(force), slow)
+    return line, ema_ref(line, sig)
+
+
+def vo_ref(v, fast, slow):
+    f, s = ema_ref(v, fast), ema_ref(v, slow)
+    return 100 * (f - s) / s
+
+
+def nvi_pvi_ref(c, v, start, negative):
+    out = [start]
+    for i in range(1, len(c)):
+        take = v[i] < v[i - 1] if negative else v[i] > v[i - 1]
+        out.append(out[-1] * (c[i] / c[i - 1]) if take else out[-1])
+    return np.array(out)
+
+
+def pvt_ref(c, v):
+    out = [0.0]
+    for i in range(1, len(c)):
+        out.append(out[-1] + (c[i] / c[i - 1] - 1) * v[i])
+    return np.array(out)
+
+
+def bmp_ref(o, h, l, c, n):
+    raw = [(c[i] - o[i]) / (h[i] - l[i]) for i in range(len(c))]
+    return np.array([np.nan] * (n - 1) + [sum(raw[i - n + 1 : i + 1]) / n for i in range(n - 1, len(c))])
+
+
+kl, ks_ = klinger(hi, lo, close, volume2, 34, 55, 13)
+klr, ksr = klinger_ref(H, L, p, V2, 34, 55, 13)
+check("Klinger oscillator (34, 55) vs loop", kl, klr, 1e-3)
+check("Klinger signal (13) vs loop", ks_, ksr, 1e-3)
+check("Volume Oscillator (5, 10) vs loop", volume_oscillator(volume2, 5, 10), vo_ref(V2, 5, 10), 1e-9)
+check("Negative Volume Index vs loop", negative_volume_index(close, volume2), nvi_pvi_ref(p, V2, 1000.0, True), 1e-9)
+check("Positive Volume Index vs loop", positive_volume_index(close, volume2), nvi_pvi_ref(p, V2, 1000.0, False), 1e-9)
+check("Price Volume Trend vs loop", price_volume_trend(close, volume2), pvt_ref(p, V2), 1e-3)
+check("Balance of Market Power (14) vs loop", balance_of_market_power(open2, hi, lo, close, 14), bmp_ref(O2, H, L, p, 14), 1e-9)
+
+# exact relationships quoted on the pages
+assert (volume_oscillator(volume2, 5, 10) - ppo(volume2, 5, 10, 9)[0]).abs().max() < 1e-9
+print("ok  Volume Oscillator is exactly the PPO line applied to volume")
+product = negative_volume_index(close, volume2) * positive_volume_index(close, volume2) / 1000.0
+assert (product - 1000.0 * close / close.iloc[0]).abs().max() < 1e-6
+print("ok  Negative Volume Index x Positive Volume Index / 1000 is exactly the price index (every day's change lands in one of them)")
+
+# worked examples quoted on the pages
+c3, v3 = pd.Series([100.0, 102, 101]), pd.Series([10.0, 9, 11])
+assert negative_volume_index(c3, v3).round(6).tolist() == [1000.0, 1020.0, 1020.0]
+assert abs(positive_volume_index(c3, v3).iloc[-1] - 1000 * 101 / 102) < 1e-9 and abs(1000 * 101 / 102 - 990.196) < 1e-3
+pt3 = price_volume_trend(pd.Series([100.0, 102, 101]), pd.Series([500.0, 1000, 2000]))
+assert abs(pt3.iloc[1] - 20) < 1e-9 and abs(pt3.iloc[2] - (20 - 2000 / 102)) < 1e-9 and abs(2000 / 102 - 19.608) < 1e-3
+bm1 = balance_of_market_power(pd.Series([10.0]), pd.Series([12.0]), pd.Series([9.0]), pd.Series([11.5]), 1)
+assert abs(bm1.iloc[-1] - 0.5) < 1e-12
+assert abs(100 * (1.2 - 1.0) / 1.0 - 20) < 1e-12 and abs(abs(2 * 0.75 - 1) * 1000 * 100 - 50000) < 1e-9
+print("ok  worked examples (Klinger, Volume Oscillator, NVI/PVI, Price Volume Trend, Balance of Market Power)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect

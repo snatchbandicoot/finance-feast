@@ -970,6 +970,66 @@ def chart_emv(t):
     return fig
 
 
+def chart_klinger(t):
+    line, sig = ind.klinger(H, L, C, V)
+    return _osc_two(t, "Klinger Oscillator (34, 55, 13) on synthetic daily data", line / 1e6, sig / 1e6, "Klinger", "Signal (13-bar EMA)",
+                    "Klinger Oscillator, in millions", warm_bars=60)
+
+
+def chart_volume_osc(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Volume Oscillator (5, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.volume_oscillator(V, 5, 10), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Volume Oscillator, percent difference between a 5-bar and a 10-bar average of volume")
+    return fig
+
+
+def _volume_index(t, title, series, label):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, title)
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax2.plot(1000 * C / C.iloc[0], color=t["ink2"], linewidth=PRICE, label="Price index (close, starting at 1000)", zorder=3)
+    ax2.plot(series, color=t["pink"], linewidth=LINE, label=label, zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Index, starting at 1000")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by[label], by["Price index (close, starting at 1000)"]], [label, "Price index (close, starting at 1000)"])
+    return fig
+
+
+def chart_nvi(t):
+    return _volume_index(t, "Negative Volume Index on synthetic daily data", ind.negative_volume_index(C, V), "Negative Volume Index")
+
+
+def chart_pvi(t):
+    return _volume_index(t, "Positive Volume Index on synthetic daily data", ind.positive_volume_index(C, V), "Positive Volume Index")
+
+
+def chart_pvt(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Price Volume Trend on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax2.plot(ind.price_volume_trend(C, V) / 1e3, color=t["pink"], linewidth=LINE, zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Price Volume Trend, in thousands of shares")
+    return fig
+
+
+def chart_bmp(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Balance of Market Power (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.balance_of_market_power(daily["open"], H, L, C, 14), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(-0.6, 0.6)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Balance of Market Power, from -1 (sellers) to +1 (buyers)")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -1030,6 +1090,12 @@ CHARTS = {
     "money-flow-index": chart_mfi,
     "force-index": chart_force,
     "ease-of-movement": chart_emv,
+    "klinger-oscillator": chart_klinger,
+    "volume-oscillator": chart_volume_osc,
+    "negative-volume-index": chart_nvi,
+    "positive-volume-index": chart_pvi,
+    "price-volume-trend": chart_pvt,
+    "balance-of-market-power": chart_bmp,
 }
 
 if __name__ == "__main__":
