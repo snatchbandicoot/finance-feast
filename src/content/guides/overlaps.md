@@ -89,6 +89,9 @@ A high correlation means two lines rise and fall together. It does not guarantee
 - The Stochastic RSI overlaps partly with the Stochastic (0.82) and much less with RSI (0.55). The Stochastic Momentum Index overlaps partly with the Stochastic (0.90), and the Fisher Transform less so (0.75).
 - The Relative Momentum Index is exactly RSI when its step is 1 bar, and correlates 0.90 with RSI at its usual step of 5. Connors RSI correlates 0.85 with a 3-bar RSI, which is one third of it.
 - The Money Flow Index is a volume-weighted RSI, and correlates 0.73 with RSI. The Relative Volatility Index is built like RSI and correlates 0.83 with it, though its name suggests it measures volatility.
+- Momentum is the Rate of Change in points instead of percent (0.997 with it), and the Disparity Index is the distance from an EMA in percent (0.997 with that distance).
+- The Schaff Trend Cycle is a stochastic of MACD: it overlaps partly with the Stochastic (0.84) and only a little with MACD itself (0.38). The Double Smoothed Stochastic overlaps partly with the Stochastic too (0.77), and the Price Zone Oscillator with RSI (0.73).
+- Woodie's CCI is the ordinary CCI (14 bars, exactly) plus a faster 6-bar line.
 - The Detrended Price Oscillator is a different kind of tool: it removes the trend to show cycles, and is not for timing.
 
 **What to keep (my view):** nothing new. RSI and MACD still cover this ground. Pick a relative only if one specific feature matters to you, such as the Stochastic RSI's sensitivity.

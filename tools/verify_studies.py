@@ -1388,6 +1388,94 @@ print("ok  worked example (Volume Profile)")
 
 
 # =====================================================================================
+# Batch J: Momentum, Disparity Index, Price Zone Oscillator, Schaff Trend Cycle, Woodie's CCI, Double Smoothed Stochastic
+# =====================================================================================
+from indicators import (disparity_index, double_smoothed_stochastic, momentum, price_zone_oscillator, schaff_trend_cycle,
+                        woodies_cci)
+
+
+def momentum_ref(c, n):
+    return np.array([np.nan] * n + [c[i] - c[i - n] for i in range(n, len(c))])
+
+
+def disparity_ref(c, n):
+    e = ema_ref(c, n)
+    return 100 * (c - e) / e
+
+
+def pzo_ref(c, n):
+    signed = [np.nan] + [c[i] if c[i] > c[i - 1] else -c[i] for i in range(1, len(c))]
+    num = ema_seeded(np.array(signed), n)
+    return 100 * num / ema_ref(c, n)
+
+
+def stoch_window(x, n):
+    out = [np.nan] * len(x)
+    for i in range(len(x)):
+        w = x[max(0, i - n + 1) : i + 1]
+        if i >= n - 1 and not np.isnan(w).any():
+            top, bottom = max(w), min(w)
+            out[i] = np.nan if top == bottom else 100 * (x[i] - bottom) / (top - bottom)
+    return np.array(out)
+
+
+def smooth_ref(x, factor):
+    out, prev = [], np.nan
+    for v in x:
+        if np.isnan(v):
+            out.append(np.nan)
+            continue
+        prev = v if np.isnan(prev) else prev + factor * (v - prev)
+        out.append(prev)
+    return np.array(out)
+
+
+def stc_ref(c, cycle, fast, slow, factor):
+    line = ema_ref(c, fast) - ema_ref(c, slow)
+    return smooth_ref(stoch_window(smooth_ref(stoch_window(line, cycle), factor), cycle), factor)
+
+
+def dss_ref(h, l, c, n, s):
+    raw = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        bottom, top = min(l[i - n + 1 : i + 1]), max(h[i - n + 1 : i + 1])
+        raw[i] = 100 * (c[i] - bottom) / (top - bottom)
+    first = ema_seeded(np.array(raw), s)
+    second = stoch_window(first, n)
+    return ema_seeded(second, s)
+
+
+check("Momentum (10) vs loop", momentum(close, 10), momentum_ref(p, 10), 1e-9)
+check("Disparity Index (14) vs loop", disparity_index(close, 14), disparity_ref(p, 14), 1e-9)
+check("Price Zone Oscillator (14) vs loop", price_zone_oscillator(close, 14), pzo_ref(p, 14), 1e-9)
+check("Schaff Trend Cycle (10, 23, 50) vs loop", schaff_trend_cycle(close, 10, 23, 50, 0.5), stc_ref(p, 10, 23, 50, 0.5), 1e-8)
+w14, w6 = woodies_cci(hi, lo, close, 14, 6)
+check("Woodie's CCI 14 vs the CCI reference", w14, cci_ref(H, L, p, 14), 1e-8)
+check("Woodie's CCI 6 vs the CCI reference", w6, cci_ref(H, L, p, 6), 1e-8)
+check("Double Smoothed Stochastic (13, 8) vs loop", double_smoothed_stochastic(hi, lo, close, 13, 8), dss_ref(H, L, p, 13, 8), 1e-8)
+
+# properties quoted on the pages
+assert (momentum(close, 10) - close.shift(10) * roc(close, 10) / 100).abs().dropna().max() < 1e-9
+print("ok  Momentum is exactly the old price times the Rate of Change over 100")
+assert (disparity_index(close, 14) - 100 * (close - ema(close, 14)) / ema(close, 14)).abs().max() < 1e-9
+spike = pd.Series([100.0] * 30 + [130.0])
+assert abs(woodies_cci(spike + 1, spike - 1, spike, 14, 6)[1].iloc[-1] - 200) < 1e-9
+assert abs(woodies_cci(spike + 1, spike - 1, spike, 14, 6)[0].iloc[-1] - 14 / (2 * 0.015)) < 1e-9
+print("ok  A lone spike drives the CCI to its ceiling: n / (2 x 0.015), which is 200 for 6 bars and 466.7 for 14")
+assert schaff_trend_cycle(close).dropna().between(-1e-9, 100 + 1e-9).all() and double_smoothed_stochastic(hi, lo, close).dropna().between(-1e-9, 100 + 1e-9).all()
+print("ok  Schaff Trend Cycle and Double Smoothed Stochastic stay in 0..100")
+
+# worked examples quoted on the pages
+assert momentum(pd.Series([100.0, 105, 112]), 2).iloc[-1] == 12
+assert abs(100 * (103 - 100) / 100 - 3.0) < 1e-12
+up_down = price_zone_oscillator(pd.Series([10.0, 11, 10.5]), 1)
+assert abs(up_down.iloc[1] - 100) < 1e-9 and abs(up_down.iloc[2] + 100) < 1e-9 and abs(100 * 2 / 10 - 20) < 1e-12
+assert abs(100 * (0.8 - 0.2) / (1.0 - 0.2) - 75) < 1e-12 and 40 + 0.5 * (75 - 40) == 57.5
+assert abs(100 * (55 - 40) / (60 - 40) - 75) < 1e-12 and abs(2 / (8 + 1) - 0.2222) < 1e-3
+print("ok  worked examples (Momentum, Disparity Index, PZO, Schaff Trend Cycle, Woodie's CCI, DSS)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
