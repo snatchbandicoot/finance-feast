@@ -6,7 +6,7 @@ The functions under test live in tools/indicators.py, and their code is shown on
 import numpy as np
 import pandas as pd
 
-from indicators import atr, bollinger, ema, macd, obv, rsi, sma, stochastic, vwap
+from indicators import adx, atr, bollinger, cci, ema, macd, obv, psar, roc, rsi, sma, stochastic, vwap, williams_r
 
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
@@ -243,6 +243,162 @@ print("ok  worked examples (Stochastic, VWAP, OBV)")
 
 
 # =====================================================================================
+# ROC, Williams %R, CCI, ADX, Parabolic SAR
+# =====================================================================================
+def roc_ref(p, n):
+    out = [np.nan] * len(p)
+    for i in range(n, len(p)):
+        out[i] = 100 * (p[i] - p[i - n]) / p[i - n]
+    return np.array(out)
+
+
+def williams_ref(h, l, c, n):
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        hh, ll = max(h[i - n + 1 : i + 1]), min(l[i - n + 1 : i + 1])
+        out[i] = -100 * (hh - c[i]) / (hh - ll)
+    return np.array(out)
+
+
+def cci_ref(h, l, c, n):
+    tp = [(h[i] + l[i] + c[i]) / 3 for i in range(len(c))]
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        w = tp[i - n + 1 : i + 1]
+        m = sum(w) / n
+        md = sum(abs(x - m) for x in w) / n
+        out[i] = (tp[i] - m) / (0.015 * md)
+    return np.array(out)
+
+
+def _true_range_and_dm(h, l, c):
+    tr, pdm, mdm = [h[0] - l[0]], [0.0], [0.0]
+    for i in range(1, len(c)):
+        tr.append(max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])))
+        up, down = h[i] - h[i - 1], l[i - 1] - l[i]
+        pdm.append(up if (up > down and up > 0) else 0.0)
+        mdm.append(down if (down > up and down > 0) else 0.0)
+    return tr, pdm, mdm
+
+
+def adx_ref_same_seed(h, l, c, n):
+    tr, pdm, mdm = _true_range_and_dm(h, l, c)
+    a = 1 / n
+    s_tr, s_p, s_m, s_dx = tr[0], pdm[0], mdm[0], None
+    adx_out, pdi_out, mdi_out = [], [], []
+    for i in range(len(c)):
+        if i:
+            s_tr, s_p, s_m = s_tr * (1 - a) + tr[i] * a, s_p * (1 - a) + pdm[i] * a, s_m * (1 - a) + mdm[i] * a
+        pdi, mdi = 100 * s_p / s_tr, 100 * s_m / s_tr
+        dx = 100 * abs(pdi - mdi) / (pdi + mdi) if (pdi + mdi) else np.nan
+        if not np.isnan(dx):
+            s_dx = dx if s_dx is None else s_dx * (1 - a) + dx * a
+        adx_out.append(np.nan if s_dx is None else s_dx)
+        pdi_out.append(pdi)
+        mdi_out.append(mdi)
+    return np.array(adx_out), np.array(pdi_out), np.array(mdi_out)
+
+
+def adx_ref_wilder(h, l, c, n):
+    """Textbook Wilder: first values are sums over the first n changes, then S = S - S/n + x."""
+    tr, pdm, mdm = _true_range_and_dm(h, l, c)
+    N = len(c)
+    s_tr, s_p, s_m = sum(tr[1 : n + 1]), sum(pdm[1 : n + 1]), sum(mdm[1 : n + 1])
+    dxs = {}
+    pdi_out, mdi_out = [np.nan] * N, [np.nan] * N
+    for i in range(n, N):
+        if i > n:
+            s_tr, s_p, s_m = s_tr - s_tr / n + tr[i], s_p - s_p / n + pdm[i], s_m - s_m / n + mdm[i]
+        pdi, mdi = 100 * s_p / s_tr, 100 * s_m / s_tr
+        pdi_out[i], mdi_out[i] = pdi, mdi
+        dxs[i] = 100 * abs(pdi - mdi) / (pdi + mdi)
+    out = [np.nan] * N
+    first = 2 * n - 1
+    a = sum(dxs[i] for i in range(n, first + 1)) / n
+    out[first] = a
+    for i in range(first + 1, N):
+        a = (a * (n - 1) + dxs[i]) / n
+        out[i] = a
+    return np.array(out), np.array(pdi_out), np.array(mdi_out)
+
+
+def psar_ref(h, l, step=0.02, step_max=0.2):
+    """Same rules, written sign-symmetrically (t = +1 uptrend, -1 downtrend) instead of two mirrored branches."""
+    n = len(h)
+    t = 1 if h[1] >= h[0] else -1
+
+    def best(i):  # the extreme this trend is chasing
+        return h[i] if t > 0 else l[i]
+
+    def worst(i):  # the side the SAR must not cross
+        return l[i] if t > 0 else h[i]
+
+    sar, ep, af = [l[0] if t > 0 else h[0]], best(0), step
+    for i in range(1, n):
+        s = sar[-1] + af * (ep - sar[-1])
+        s = t * min(t * s, t * worst(i - 1), t * worst(i - 2 if i > 1 else i - 1))
+        if t * (worst(i) - s) < 0:  # price pushed through the SAR: reverse
+            t = -t
+            s, ep, af = ep, best(i), step  # best() now reads the new trend
+        elif t * (best(i) - ep) > 0:
+            ep, af = best(i), min(af + step, step_max)
+        sar.append(s)
+    return np.array(sar)
+
+
+roc_s = roc(close, 12)
+check("ROC(12) vs loop", roc_s, roc_ref(p, 12), 1e-9)
+wr = williams_r(hi, lo, close, 14)
+check("Williams %R(14) vs loop", wr, williams_ref(H, L, p, 14), 1e-9)
+# Williams %R is the raw stochastic %K shifted down by 100, exactly
+raw_k14 = stochastic(hi, lo, close, 14)[0]
+check("Williams %R == raw stochastic %K - 100", wr, raw_k14 - 100, 1e-9)
+cci_s = cci(hi, lo, close, 20)
+check("CCI(20) vs loop", cci_s, cci_ref(H, L, p, 20), 1e-8)
+
+adx_s, pdi_s, mdi_s = adx(hi, lo, close, 14)
+a_r, p_r, m_r = adx_ref_same_seed(H, L, p, 14)
+check("ADX(14) vs loop, same seed", adx_s, a_r, 1e-9)
+check("+DI(14) vs loop, same seed", pdi_s, p_r, 1e-9)
+check("-DI(14) vs loop, same seed", mdi_s, m_r, 1e-9)
+aw, pw, mw = adx_ref_wilder(H, L, p, 14)
+check("ADX(14) vs Wilder-seeded, bars 250+", adx_s[250:], aw[250:], 1e-3)
+check("+DI(14) vs Wilder-seeded, bars 250+", pdi_s[250:], pw[250:], 1e-3)
+assert adx_s.dropna().between(0, 100).all() and pdi_s.between(0, 100).all() and mdi_s.between(0, 100).all()
+print("ok  ADX, +DI and -DI stay within 0 to 100")
+
+sar_s = psar(hi, lo)
+check("Parabolic SAR vs sign-symmetric re-implementation", sar_s, psar_ref(H, L), 1e-9)
+# invariants: on non-reversal bars the SAR sits on the far side of the bar from the trend
+above = sar_s.to_numpy() > H
+below = sar_s.to_numpy() < L
+inside = ~(above | below)
+assert inside.sum() <= 0.02 * len(sar_s), f"{inside.sum()} bars have SAR inside the bar's range"
+print(f"ok  Parabolic SAR lies outside the bar on {100 * (1 - inside.mean()):.1f}% of bars (inside only on rare reversal bars)")
+
+# ---- worked examples quoted on the pages --------------------------------------------
+# ROC: 11.5 against 10.0 twelve bars earlier is +15%
+assert abs(100 * (11.5 / 10.0 - 1) - 15.0) < 1e-12
+# Williams %R: highest high 20, lowest low 10, close 16 -> -40 (the stochastic page's example gives %K = 60)
+assert abs(-100 * (20 - 16) / (20 - 10) - (-40.0)) < 1e-12 and abs(100 * (16 - 10) / (20 - 10) - 100 - (-40.0)) < 1e-12
+# CCI: five typical prices 10, 11, 12, 13, 14 with n = 5: mean 12, mean deviation 1.2, CCI = (14 - 12) / (0.015 * 1.2)
+tp = np.array([10.0, 11, 12, 13, 14])
+md = np.abs(tp - tp.mean()).mean()
+assert abs(md - 1.2) < 1e-12 and abs((tp[-1] - tp.mean()) / (0.015 * md) - 111.1111111) < 1e-6
+# ADX: +DI 30 and -DI 10 -> DX = 100 * 20 / 40 = 50
+assert abs(100 * abs(30 - 10) / (30 + 10) - 50.0) < 1e-12
+# True range / directional movement of one bar: high 12 vs 11, low 10 vs 9.5 -> +DM 1, -DM 0 (up move 1 beats down move -0.5)
+up, down = 12 - 11, 9.5 - 10
+assert (up if up > down and up > 0 else 0) == 1 and (down if down > up and down > 0 else 0) == 0
+# Parabolic SAR by hand on six bars (see the page): SAR = 8, 8, 8, 8.24, 8.6208, 14 (reversal on the last bar)
+ex_h = pd.Series([10.0, 11, 12, 13, 14, 13])
+ex_l = pd.Series([8.0, 9, 10, 11, 12, 7])
+expected = [8.0, 8.0, 8.0, 8.24, 8.6208, 14.0]
+assert np.allclose(psar(ex_h, ex_l).to_numpy(), expected, atol=1e-9), psar(ex_h, ex_l).tolist()
+print("ok  worked examples (ROC, Williams %R, CCI, ADX, Parabolic SAR)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
@@ -261,6 +417,11 @@ PAGES = {
     "stochastic-oscillator": "stochastic",
     "volume-weighted-average-price": "vwap",
     "on-balance-volume": "obv",
+    "average-directional-index": "adx",
+    "parabolic-sar": "psar",
+    "commodity-channel-index": "cci",
+    "williams-percent-r": "williams_r",
+    "rate-of-change": "roc",
 }
 studies = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
 for slug, fn in PAGES.items():

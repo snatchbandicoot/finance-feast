@@ -10,6 +10,9 @@ Validated with the dataviz palette validator, all four in order, in both modes:
          Gold is 2.2:1 on the surface, so it is never the only cue: charts with a gold series carry a legend.
   dark   all checks pass, every color at least 3:1 on the surface. Worst colorblind separation 8.9 (target 8),
          which is close to the line: keep pink and teal on different lines of a chart only with a legend.
+Three-series charts (ADX with +DI and -DI) use pink, teal and blue, skipping gold, whose light-mode
+contrast is weak. That triple also passes in both modes; its closest pair for blue-yellow colorblind readers
+(teal against blue) sits in the 6 to 8 band, so those charts always carry a legend.
 "pink_text" is the pink used for text, links and button fills, which needs 4.5:1: the brand pink itself in
 light mode (5.2:1) and a lighter pink in dark mode (7.7:1).
 Note: an earlier, lighter pink with teal failed the colorblind check; the real pink does not.

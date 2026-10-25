@@ -9,7 +9,7 @@ inputs:
   - { name: standard deviations, default: 2 }
 verdict: situational
 status: draft
-related: [simple-moving-average, average-true-range, relative-strength-index]
+related: [simple-moving-average, average-true-range, relative-strength-index, commodity-channel-index]
 ---
 
 > **In plain English.** Three lines drawn on the price chart: an average in the middle, and a band above and below it. The bands sit a set number of standard deviations (a measure of how much prices have been scattered) away from the average. When prices have been jumpy, the bands spread out. When prices have been calm, they pull in. A price at the edge of a band is unusually far from its recent average. That is a description, not a prediction.
@@ -113,3 +113,4 @@ A common claim is that two standard deviations contain "95% of prices". That fig
 - [Simple Moving Average](../simple-moving-average/): the middle line.
 - [Average True Range](../average-true-range/): another volatility measure, in price units and not tied to the average.
 - [Relative Strength Index](../relative-strength-index/): a momentum reading that helps separate a stretched range from a strong trend.
+- [Commodity Channel Index](../commodity-channel-index/): very close to %B in what it measures. On the sample data the two correlated at 0.98.

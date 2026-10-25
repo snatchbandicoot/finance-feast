@@ -275,6 +275,78 @@ def chart_vwap(t):
     return fig
 
 
+def chart_adx(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "ADX (14) with +DI and -DI on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    a, pdi, mdi = (warm(x, 40) for x in ind.adx(H, L, C, 14))
+    hline(ax2, t, 25)
+    ax2.plot(pdi, color=t["teal"], linewidth=LINE, label="+DI", zorder=4)
+    ax2.plot(mdi, color=t["blue"], linewidth=LINE, label="-DI", zorder=4)
+    ax2.plot(a, color=t["pink"], linewidth=LINE + 0.3, label="ADX", zorder=5)
+    ax2.set_ylim(0, 60); ax2.set_yticks([0, 25, 50])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "ADX, +DI and -DI, with the 25 line")
+    h, l = ax2.get_legend_handles_labels()
+    by_label = dict(zip(l, h))
+    legend(ax2, t, [by_label[k] for k in ("ADX", "+DI", "-DI")], ["ADX", "+DI", "-DI"])
+    return fig
+
+
+def chart_psar(t):
+    fig, (ax,) = new_fig(t, [1], 4.3)
+    heading(fig, t, "Parabolic SAR (0.02, 0.2) on synthetic daily data")
+    price_panel(ax, t)
+    sar = ind.psar(H, L)
+    # Dots are 3.5px, smaller than the 8px marker spec, because 320 bars share about 700px.
+    ax.plot(sar, linestyle="none", marker="o", markersize=2.6, markeredgewidth=0, color=t["pink"], label="Parabolic SAR", zorder=4)
+    seg = pd.concat([C, sar])
+    pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, h, l)
+    return fig
+
+
+def chart_cci(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Commodity Channel Index (20) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    c = ind.cci(H, L, C, 20)
+    for y in (-100, 100):
+        hline(ax2, t, y)
+    ax2.plot(c, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = max(abs(c.min()), abs(c.max())) * 1.08
+    ax2.set_ylim(-lim, lim); ax2.set_yticks([-200, -100, 0, 100, 200])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "CCI (20), with the +100 and -100 lines")
+    return fig
+
+
+def chart_williams(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Williams %R (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    w = ind.williams_r(H, L, C, 14)
+    for y in (-20, -80):
+        hline(ax2, t, y)
+    ax2.plot(w, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(-100, 0); ax2.set_yticks([-100, -80, -50, -20, 0])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Williams %R (14), with the -20 and -80 lines")
+    return fig
+
+
+def chart_roc(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Rate of Change (12) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    r = ind.roc(C, 12)
+    hline(ax2, t, 0)
+    ax2.plot(r, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = max(abs(r.min()), abs(r.max())) * 1.08
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "ROC (12), percent change over 12 bars")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -285,6 +357,11 @@ CHARTS = {
     "average-true-range": chart_atr,
     "on-balance-volume": chart_obv,
     "volume-weighted-average-price": chart_vwap,
+    "average-directional-index": chart_adx,
+    "parabolic-sar": chart_psar,
+    "commodity-channel-index": chart_cci,
+    "williams-percent-r": chart_williams,
+    "rate-of-change": chart_roc,
 }
 
 if __name__ == "__main__":

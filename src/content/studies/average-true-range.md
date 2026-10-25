@@ -8,7 +8,7 @@ inputs:
   - { name: length, default: 14 }
 verdict: essential
 status: draft
-related: [bollinger-bands, relative-strength-index, exponential-moving-average]
+related: [bollinger-bands, relative-strength-index, exponential-moving-average, average-directional-index, parabolic-sar]
 ---
 
 > **In plain English.** How far price typically moves in a single bar, including gaps between one bar's close and the next bar's open. A high reading means the market has been moving a lot. A low reading means it has been quiet. It says nothing about direction.
@@ -102,3 +102,5 @@ The choice of $k$ is a judgment call. A tighter stop gets hit by ordinary noise.
 - [Bollinger Bands](../bollinger-bands/): volatility shown as an envelope around a moving average, and a percentage-based bandwidth.
 - [Exponential Moving Average](../exponential-moving-average/): ATR's smoothing is an EMA with $\alpha = 1/N$.
 - [Relative Strength Index](../relative-strength-index/): Wilder's other well-known study, with the same smoothing.
+- [Average Directional Index](../average-directional-index/): built on the same true range and smoothing, to measure trend strength.
+- [Parabolic SAR](../parabolic-sar/): a trailing stop that tightens as the trend extends, where an ATR stop keeps a fixed distance.
