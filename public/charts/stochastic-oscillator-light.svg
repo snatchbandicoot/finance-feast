@@ -1847,7 +1847,7 @@ L 591.404625 304.35731
 L 593.133975 301.107825 
 L 594.863325 301.882115 
 L 594.863325 301.882115 
-" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #d21a52; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="line2d_39">
     <path d="M 72.599625 322.703846 
@@ -2142,14 +2142,14 @@ L 591.404625 311.878066
 L 593.133975 306.031033 
 L 594.863325 302.449083 
 L 594.863325 302.449083 
-" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #0e9f93; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="legend_1">
     <g id="line2d_40">
      <path d="M 507.106203 276.342293 
 L 513.906203 276.342293 
 L 520.706203 276.342293 
-" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #d21a52; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_25">
      <!-- %K -->
@@ -2225,7 +2225,7 @@ z
      <path d="M 553.056672 276.342293 
 L 559.856672 276.342293 
 L 566.656672 276.342293 
-" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #0e9f93; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_26">
      <!-- %D -->

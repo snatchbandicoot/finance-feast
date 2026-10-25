@@ -4256,7 +4256,7 @@ L 589.675275 313.272197
 L 591.404625 312.181036 
 L 594.863325 310.78078 
 L 594.863325 310.78078 
-" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #d21a52; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="line2d_36">
     <path d="M 112.374675 304.092503 
@@ -4459,14 +4459,14 @@ L 589.675275 313.798068
 L 593.133975 313.066848 
 L 594.863325 312.609634 
 L 594.863325 312.609634 
-" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p1744ed5fe4)" style="fill: none; stroke: #0e9f93; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="legend_1">
     <g id="line2d_37">
      <path d="M 407.393234 276.342293 
 L 414.193234 276.342293 
 L 420.993234 276.342293 
-" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #d21a52; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_24">
      <!-- MACD -->
@@ -4481,7 +4481,7 @@ L 420.993234 276.342293
      <path d="M 465.173313 276.342293 
 L 471.973313 276.342293 
 L 478.773313 276.342293 
-" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #0e9f93; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_25">
      <!-- Signal -->

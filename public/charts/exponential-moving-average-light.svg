@@ -1166,7 +1166,7 @@ L 582.81552 207.666551
 L 586.5048 206.565012 
 L 593.88336 204.617986 
 L 593.88336 204.617986 
-" clip-path="url(#p5fe09e99cf)" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p5fe09e99cf)" style="fill: none; stroke: #d21a52; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="line2d_16">
     <path d="M -1 107.139035 
@@ -1304,7 +1304,7 @@ L 586.5048 206.594276
 L 590.19408 205.823851 
 L 593.88336 205.19248 
 L 593.88336 205.19248 
-" clip-path="url(#p5fe09e99cf)" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p5fe09e99cf)" style="fill: none; stroke: #0e9f93; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="legend_1">
     <g id="line2d_17">
@@ -1350,7 +1350,7 @@ z
      <path d="M 471.278703 18.293008 
 L 478.078703 18.293008 
 L 484.878703 18.293008 
-" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #d21a52; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_14">
      <!-- EMA 20 -->
@@ -1416,7 +1416,7 @@ z
      <path d="M 535.615734 18.293008 
 L 542.415734 18.293008 
 L 549.215734 18.293008 
-" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #0e9f93; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_15">
      <!-- SMA 20 -->
