@@ -1476,6 +1476,108 @@ print("ok  worked examples (Momentum, Disparity Index, PZO, Schaff Trend Cycle, 
 
 
 # =====================================================================================
+# Batch K: Triangular MA, Variable MA, Displaced EMA, EMA Ribbon, STARC Bands, Projection Bands
+# =====================================================================================
+from indicators import displaced_ema, ema_ribbon, projection_bands, starc_bands, triangular_ma, variable_ma
+
+
+def tma_ref(c, n):
+    box1, box2 = np.ones(n // 2 + 1) / (n // 2 + 1), np.ones((n + 1) // 2) / ((n + 1) // 2)
+    weights = np.convolve(box1, box2)  # the combined weights of the two averages: a triangle
+    assert len(weights) == n
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        out[i] = sum(w * x for w, x in zip(weights[::-1], c[i - n + 1 : i + 1]))
+    return np.array(out)
+
+
+def vidya_ref(c, n, cn):
+    out, prev = [np.nan] * len(c), None
+    alpha = 2 / (n + 1)
+    for i in range(cn, len(c)):
+        ch = [c[j] - c[j - 1] for j in range(i - cn + 1, i + 1)]
+        up, dn = sum(x for x in ch if x > 0), -sum(x for x in ch if x < 0)
+        k = abs((up - dn) / (up + dn))
+        prev = c[i] if prev is None else alpha * k * c[i] + (1 - alpha * k) * prev
+        out[i] = prev
+    return np.array(out)
+
+
+def starc_ref(h, l, c, n, an, k):
+    tr = [np.nan] + [max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])) for i in range(1, len(c))]
+    mid, up, dn = [np.nan] * len(c), [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(len(c)):
+        if i >= n - 1 and i >= an:
+            atr = sum(tr[i - an + 1 : i + 1]) / an
+            mid[i] = sum(c[i - n + 1 : i + 1]) / n
+            up[i], dn[i] = mid[i] + k * atr, mid[i] - k * atr
+    return np.array(mid), np.array(up), np.array(dn)
+
+
+def projection_ref(h, l, c, n):
+    up, dn, osc = [np.nan] * len(c), [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(2 * n - 2, len(c)):  # the highs and lows reach back n - 1 bars from a bar with a full n-bar slope
+        slope = np.polyfit(np.arange(n), c[i - n + 1 : i + 1], 1)[0]
+        up[i] = max(h[i - j] + slope * j for j in range(n))
+        dn[i] = min(l[i - j] + slope * j for j in range(n))
+        osc[i] = 100 * (c[i] - dn[i]) / (up[i] - dn[i])
+    return np.array(up), np.array(dn), np.array(osc)
+
+
+check("Triangular moving average (20) vs triangle weights", triangular_ma(close, 20), tma_ref(p, 20), 1e-9)
+check("Triangular moving average (21) vs triangle weights", triangular_ma(close, 21), tma_ref(p, 21), 1e-9)
+check("Variable moving average (21, 9) vs loop", variable_ma(close, 21, 9), vidya_ref(p, 21, 9), 1e-9)
+check("Displaced EMA (20, 5) vs loop", displaced_ema(close, 20, 5), np.concatenate([[np.nan] * 5, ema_ref(p, 20)[:-5]]), 1e-9)
+rib, rib_w = ema_ribbon(close)
+for n_ in rib.columns:
+    check(f"EMA ribbon line {n_} vs loop", rib[n_], ema_ref(p, n_), 1e-9)
+check("EMA ribbon width vs loop", rib_w, ema_ref(p, 10) - ema_ref(p, 80), 1e-9)
+sm, su, sl = starc_bands(hi, lo, close, 6, 15, 2)
+smr, sur, slr = starc_ref(H, L, p, 6, 15, 2)
+check("STARC middle vs loop", sm, smr, 1e-9)
+check("STARC upper vs loop", su, sur, 1e-9)
+check("STARC lower vs loop", sl, slr, 1e-9)
+pu, pl, po = projection_bands(hi, lo, close, 14)
+pur, plr, por = projection_ref(H, L, p, 14)
+check("Projection upper band vs loop (polyfit slope)", pu, pur, 1e-8)
+check("Projection lower band vs loop (polyfit slope)", pl, plr, 1e-8)
+check("Projection oscillator vs loop", po, por, 1e-7)
+
+# properties quoted on the pages
+assert (pu.dropna() >= close.loc[pu.dropna().index] - 1e-9).all() and (pl.dropna() <= close.loc[pl.dropna().index] + 1e-9).all()
+assert po.dropna().between(-1e-9, 100 + 1e-9).all()
+print("ok  Projection Bands never sit inside the day's own range, so a close can never break them; the oscillator stays in 0..100")
+climb4 = pd.Series(np.arange(600.0) + 100)
+assert abs((variable_ma(climb4, 21, 9) - ema(climb4, 21)).iloc[-1]) < 1e-9
+print("ok  Variable MA equals the EMA of the same length on a straight climb (efficiency 1)")
+rng3 = np.random.default_rng(3)
+noisy = pd.Series(100 + rng3.normal(0, 0.5, 300))
+noisy.iloc[150:] += 10
+steps = {name: int((f(noisy).iloc[150:] >= 105).idxmax() - 150) for name, f in
+         [("vidya", lambda s: variable_ma(s)), ("ema", lambda s: ema(s, 21)), ("tma", lambda s: triangular_ma(s, 20))]}
+assert steps == {"vidya": 12, "ema": 7, "tma": 10}, steps
+print("ok  half-jump times on a noisy test series: VIDYA 12 bars, EMA 21 7 bars, TMA 20 10 bars")
+roughness = lambda s: s.diff().diff().abs().iloc[60:].mean()
+assert roughness(triangular_ma(close.iloc[:600], 20)) < roughness(sma(close, 20)) < roughness(ema(close, 20))
+print("ok  the triangular average is smoother than the simple average, which is smoother than the EMA (second differences)")
+
+assert abs((climb4 - triangular_ma(climb4, 20)).iloc[-1] - 9.5) < 1e-9 and abs((climb4 - sma(climb4, 20)).iloc[-1] - 9.5) < 1e-9
+assert abs((climb4 - displaced_ema(climb4, 20, 5)).iloc[-1] - 14.5) < 1e-6
+print("ok  on a straight climb the triangular average trails by 9.5 bars (as the SMA does) and the 5-bar displaced EMA by 14.5")
+
+# worked examples quoted on the pages
+assert abs(triangular_ma(pd.Series([1.0, 2, 3, 4, 5]), 4).iloc[-1] - 21 / 6) < 1e-12 and abs(21 / 6 - 3.5) < 1e-12
+assert abs(100 + (2 / 22) * 0.5 * (110 - 100) - 100.4545) < 1e-3
+assert abs(110 - 105 - 5) < 1e-12
+cm = pd.Series([100.0] * 40)
+assert starc_bands(cm + 1, cm - 1, cm, 6, 15, 2)[1].iloc[-1] == 104 and starc_bands(cm + 1, cm - 1, cm, 6, 15, 2)[2].iloc[-1] == 96
+c3 = pd.Series([10.0, 11, 12, 13, 14])
+u3, l3, o3 = projection_bands(c3 + 0.5, c3 - 0.5, c3, 3)
+assert abs(u3.iloc[-1] - 14.5) < 1e-9 and abs(l3.iloc[-1] - 13.5) < 1e-9 and abs(o3.iloc[-1] - 50) < 1e-9
+print("ok  worked examples (Triangular MA, Variable MA, EMA Ribbon, STARC Bands, Projection Bands)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect

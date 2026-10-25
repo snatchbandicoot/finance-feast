@@ -78,6 +78,7 @@ A high correlation means two lines rise and fall together. It does not guarantee
 - The Double and Triple Exponential Moving Averages and the Hull Moving Average cut lag by extrapolating. That makes them genuinely different from an EMA (the DEMA correlates only 0.68 with it), but the difference is in lag and overshoot and not in information.
 - The Kaufman Adaptive Moving Average changes speed with how directional the market is, and correlates 0.78 with an EMA.
 - Linear Regression fits a line instead of averaging, and its distance from price correlates only 0.34 with the SMA's.
+- The Triangular Moving Average and the Displaced EMA are the simple average and the EMA with a different shape or an added delay: their distances from price correlate 0.993 and 0.991 with the originals. The Variable Moving Average is an EMA that slows in chop, and correlates 0.94 with an EMA of its length. Every line in a Moving Average Ribbon is an ordinary EMA.
 - The Moving Average Envelope is a fixed-percentage channel and overlaps partly with Bollinger Bands (0.82).
 
 **What to keep (my view):** one average. If lag bothers you, try a Hull or a Double Exponential average, and check the overshoot on the page before you trust it.
@@ -102,6 +103,7 @@ A high correlation means two lines rise and fall together. It does not guarantee
 
 - Historical Volatility correlates 0.87 with ATR. It is the same idea in percent, which is what lets you compare instruments.
 - Standard Deviation is exactly a quarter of the distance between the upper and lower Bollinger Bands. It also mixes trend into its reading, and correlates only 0.63 with ATR.
+- STARC Bands are Keltner-style bands with a faster middle line and wider bands: their widths correlate 0.94. Projection Bands are a trend-adjusted Donchian-style channel, with no close ever outside them.
 - Chaikin Volatility is the change in the smoothed range. Its swings correlate 0.90 with the 10-bar change in ATR.
 - The Ulcer Index counts only falls from a peak, and correlates 0.74 with Historical Volatility.
 - The Choppiness Index runs opposite to ADX (a correlation of -0.58): high means choppy, where ADX high means trending.
