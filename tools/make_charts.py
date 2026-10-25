@@ -619,6 +619,66 @@ def chart_vortex(t):
     return fig
 
 
+def _osc_two(t, title, line, sig, line_label, sig_label, panel_text, levels=(0,), ylim=None, yticks=None, warm_bars=60):
+    """Price on top, an oscillator line (pink) and its signal line (teal) below, with reference levels."""
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, title)
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    line, sig = warm(line, warm_bars), warm(sig, warm_bars)
+    for y in levels:
+        hline(ax2, t, y)
+    ax2.plot(line, color=t["pink"], linewidth=LINE, label=line_label, zorder=4)
+    ax2.plot(sig, color=t["teal"], linewidth=LINE, label=sig_label, zorder=4)
+    if ylim is None:
+        lim = line.abs().max() * 1.1
+        ylim = (-lim, lim)
+    ax2.set_ylim(*ylim)
+    if yticks:
+        ax2.set_yticks(yticks)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, panel_text)
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_stoch_rsi(t):
+    k, d = ind.stoch_rsi(C)
+    return _osc_two(t, "Stochastic RSI (14, 3, 3) on synthetic daily data", k, d, "%K", "%D",
+                    "Stochastic RSI, with the 20 and 80 lines", levels=(20, 80), ylim=(0, 100), yticks=[0, 20, 50, 80, 100])
+
+
+def chart_smi(t):
+    line, sig = ind.smi(H, L, C)
+    return _osc_two(t, "Stochastic Momentum Index (10, 3, 3) on synthetic daily data", line, sig, "SMI", "Signal (10-bar EMA)",
+                    "Stochastic Momentum Index, with the -40, 0 and +40 lines", levels=(-40, 0, 40), ylim=(-100, 100), yticks=[-100, -40, 0, 40, 100])
+
+
+def chart_tsi(t):
+    line, sig = ind.tsi(C)
+    return _osc_two(t, "True Strength Index (25, 13, 7) on synthetic daily data", line, sig, "TSI", "Signal (7-bar EMA)",
+                    "True Strength Index, with the zero line")
+
+
+def chart_kst(t):
+    line, sig = ind.kst(C)
+    return _osc_two(t, "Know Sure Thing (default settings) on synthetic daily data", line, sig, "KST", "Signal (9-bar average)",
+                    "Know Sure Thing, with the zero line")
+
+
+def chart_dpo(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Detrended Price Oscillator (20) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ax.plot(ind.sma(C, 20), color=t["teal"], linewidth=LINE, label="SMA 20", zorder=4)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, h, l)
+    x = warm(ind.dpo(C, 20), 60)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "DPO (20): the close 11 bars ago minus today's SMA 20, in price units")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -654,6 +714,11 @@ CHARTS = {
     "linear-regression": chart_linreg,
     "supertrend": chart_supertrend,
     "vortex-indicator": chart_vortex,
+    "stochastic-rsi": chart_stoch_rsi,
+    "stochastic-momentum-index": chart_smi,
+    "true-strength-index": chart_tsi,
+    "know-sure-thing": chart_kst,
+    "detrended-price-oscillator": chart_dpo,
 }
 
 if __name__ == "__main__":

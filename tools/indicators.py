@@ -290,3 +290,43 @@ def vortex(high, low, close, n=14):
     minus = (low - high.shift()).abs()
     total = true_range.rolling(n).sum()
     return plus.rolling(n).sum() / total, minus.rolling(n).sum() / total
+
+
+def stoch_rsi(close, n=14, smooth_k=3, smooth_d=3):
+    r = rsi(close, n)
+    low, high = r.rolling(n).min(), r.rolling(n).max()
+    raw = 100 * (r - low) / (high - low).replace(0, np.nan)
+    k = raw.rolling(smooth_k).mean()
+    return k, k.rolling(smooth_d).mean()
+
+
+def smi(high, low, close, n=10, smooth1=3, smooth2=3, signal=10):
+    highest, lowest = high.rolling(n).max(), low.rolling(n).min()
+    offset = close - (highest + lowest) / 2
+    span = highest - lowest
+
+    def twice(x):
+        return x.ewm(span=smooth1, adjust=False).mean().ewm(span=smooth2, adjust=False).mean()
+
+    line = 100 * twice(offset) / (twice(span) / 2)
+    return line, line.ewm(span=signal, adjust=False).mean()
+
+
+def tsi(close, long=25, short=13, signal=7):
+    change = close.diff()
+
+    def twice(x):
+        return x.ewm(span=long, adjust=False).mean().ewm(span=short, adjust=False).mean()
+
+    line = 100 * twice(change) / twice(change.abs())
+    return line, line.ewm(span=signal, adjust=False).mean()
+
+
+def kst(close, signal=9):
+    parts = [(10, 10, 1), (15, 10, 2), (20, 10, 3), (30, 15, 4)]
+    line = sum(w * (100 * (close / close.shift(r) - 1)).rolling(s).mean() for r, s, w in parts)
+    return line, line.rolling(signal).mean()
+
+
+def dpo(close, n=20):
+    return close.shift(n // 2 + 1) - close.rolling(n).mean()

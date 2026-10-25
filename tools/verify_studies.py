@@ -809,6 +809,118 @@ print("ok  worked examples (McGinley, Envelope, Linear Regression, Supertrend, V
 
 
 # =====================================================================================
+# Batch C: Stochastic RSI, Stochastic Momentum Index, True Strength Index, Know Sure Thing, Detrended Price Oscillator
+# =====================================================================================
+from indicators import dpo, kst, smi, stoch_rsi, tsi
+
+
+def stoch_rsi_ref(p, n, sk, sd):
+    r = rsi_ref_same_seed(p, n)
+    raw = [np.nan] * len(p)
+    for i in range(len(p)):
+        w = r[max(0, i - n + 1) : i + 1]
+        if i >= n and not np.isnan(w).any():
+            lo_, hi_ = min(w), max(w)
+            raw[i] = np.nan if hi_ == lo_ else 100 * (r[i] - lo_) / (hi_ - lo_)
+    k = sma_ref(np.array(raw), sk)
+    return k, sma_ref(k, sd)
+
+
+def ema_seeded(x, n):
+    """EMA that starts at the first non-NaN value, written as an explicit loop."""
+    a = 2 / (n + 1)
+    out, prev = [], None
+    for v in x:
+        if np.isnan(v):
+            out.append(np.nan)
+            continue
+        prev = v if prev is None else a * v + (1 - a) * prev
+        out.append(prev)
+    return np.array(out)
+
+
+def smi_ref(h, l, c, n, s1, s2, sig):
+    off, span = [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        top, bottom = max(h[i - n + 1 : i + 1]), min(l[i - n + 1 : i + 1])
+        off[i], span[i] = c[i] - (top + bottom) / 2, top - bottom
+    line = 100 * ema_seeded(ema_seeded(np.array(off), s1), s2) / (ema_seeded(ema_seeded(np.array(span), s1), s2) / 2)
+    return line, ema_seeded(line, sig)
+
+
+def tsi_ref(c, long, short, sig):
+    ch = np.concatenate([[np.nan], np.diff(c)])
+    num = ema_seeded(ema_seeded(ch, long), short)
+    den = ema_seeded(ema_seeded(np.abs(ch), long), short)
+    line = 100 * num / den
+    return line, ema_seeded(line, sig)
+
+
+def kst_ref(c, sig):
+    total = np.zeros(len(c))
+    for r_, s_, w in [(10, 10, 1), (15, 10, 2), (20, 10, 3), (30, 15, 4)]:
+        rc = np.array([np.nan] * r_ + [100 * (c[i] / c[i - r_] - 1) for i in range(r_, len(c))])
+        total = total + w * sma_ref(rc, s_)
+    return total, sma_ref(total, sig)
+
+
+def dpo_ref(c, n):
+    out = [np.nan] * len(c)
+    back = n // 2 + 1
+    for i in range(max(n - 1, back), len(c)):
+        out[i] = c[i - back] - sum(c[i - n + 1 : i + 1]) / n
+    return np.array(out)
+
+
+sk_, sd_ = stoch_rsi(close, 14, 3, 3)
+skr, sdr = stoch_rsi_ref(p, 14, 3, 3)
+check("Stochastic RSI %K vs loop", sk_, skr, 1e-8)
+check("Stochastic RSI %D vs loop", sd_, sdr, 1e-8)
+sm_, ss_ = smi(hi, lo, close, 10, 3, 3, 10)
+smr, ssr = smi_ref(H, L, p, 10, 3, 3, 10)
+check("Stochastic Momentum Index vs loop", sm_, smr, 1e-8)
+check("SMI signal vs loop", ss_, ssr, 1e-8)
+ts_, tg_ = tsi(close, 25, 13, 7)
+tsr, tgr = tsi_ref(p, 25, 13, 7)
+check("True Strength Index vs loop", ts_, tsr, 1e-8)
+check("TSI signal vs loop", tg_, tgr, 1e-8)
+ks_, kg_ = kst(close, 9)
+ksr, kgr = kst_ref(p, 9)
+check("Know Sure Thing vs loop", ks_, ksr, 1e-8)
+check("KST signal vs loop", kg_, kgr, 1e-8)
+check("Detrended Price Oscillator (20) vs loop", dpo(close, 20), dpo_ref(p, 20), 1e-9)
+
+# bounds
+assert sk_.dropna().between(-1e-9, 100 + 1e-9).all() and sm_.dropna().abs().max() <= 100 + 1e-9 and ts_.dropna().abs().max() <= 100 + 1e-9
+print("ok  Stochastic RSI stays in 0..100; SMI and TSI stay in -100..100")
+
+# properties quoted on the pages
+straight = pd.Series(np.arange(400, dtype=float) * 0.5 + 100)
+assert all(abs(dpo(straight, n).iloc[-1] - (-1.5 * 0.5)) < 1e-9 for n in (10, 20, 40))
+cycle = pd.Series(10 * np.sin(2 * np.pi * np.arange(400) / 20))
+expected = cycle.shift(11)  # a 20-bar sine averages to exactly its midline over a 20-bar window
+assert (dpo(cycle, 20) - expected).dropna().abs().max() < 1e-9
+print("ok  DPO: constant -1.5 x slope on a straight climb at any even length; on a 20-bar cycle it returns the cycle exactly, 11 bars late")
+assert tsi(pd.Series(np.arange(100, dtype=float)), 25, 13)[0].iloc[-1] > 99.999 and tsi(pd.Series(-np.arange(100, dtype=float)), 25, 13)[0].iloc[-1] < -99.999
+flat_run = pd.Series(np.arange(300, dtype=float))
+assert stoch_rsi(flat_run)[0].dropna().empty  # a straight climb pins RSI at 100, its range is zero, so the %K is undefined
+print("ok  TSI hits +/-100 on a straight line; Stochastic RSI is undefined when RSI has not moved")
+grow = pd.Series(100 * 1.01 ** np.arange(200))
+want = sum(w * 100 * (1.01 ** r_ - 1) for r_, w in [(10, 1), (15, 2), (20, 3), (30, 4)])
+assert abs(kst(grow, 9)[0].iloc[-1] - want) < 1e-9
+print("ok  KST on steady 1% growth equals the weighted sum of the four growth rates")
+
+# worked examples quoted on the pages
+assert abs(100 * (55 - 40) / (60 - 40) - 75.0) < 1e-12
+h2, l2, c2 = pd.Series([12.0, 13.0]), pd.Series([10.0, 11.0]), pd.Series([11.5, 12.5])
+assert abs(smi(h2, l2, c2, 2, 1, 1, 1)[0].iloc[-1] - 100 * 1.0 / 1.5) < 1e-9
+assert abs(tsi(pd.Series([10.0, 12, 13, 12]), 3, 3)[0].iloc[-1] - 100 * 1.0 / 1.5) < 1e-9
+assert 1 * 2 + 2 * 3 + 3 * 4 + 4 * 5 == 40
+assert abs(dpo(pd.Series([10.0, 11, 12, 13, 14, 15]), 4).iloc[-1] - (-1.5)) < 1e-12
+print("ok  worked examples (Stochastic RSI, SMI, TSI, KST, DPO)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
