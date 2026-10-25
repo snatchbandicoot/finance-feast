@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 
 from indicators import (aroon, adx, atr, awesome, bollinger, cci, cmf, cmo, dema, donchian, ema, hma, ichimoku, kama,
-                        keltner, macd, obv, ppo, psar, roc, rsi, sma, stochastic, tema, trix, ultimate, vwap, williams_r, wma)
+                        keltner, linreg, macd, mcginley, obv, ppo, psar, roc, rsi, sma, stochastic, supertrend, tema, trix, ultimate,
+                        vortex, vwap, williams_r, wma, envelope)
 
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
@@ -689,6 +690,122 @@ assert abs(k_up.iloc[5] - (14 + (2 / 3) ** 2 * (15 - 14))) < 1e-12
 k_flat = kama(pd.Series([10.0, 12, 10, 12, 10, 12]), 4, 2, 30)          # efficiency 0: smoothing (2/31)^2
 assert abs(k_flat.iloc[5] - (10 + (2 / 31) ** 2 * (12 - 10))) < 1e-12
 print("ok  worked examples (WMA, DEMA, TEMA, HMA, KAMA)")
+
+
+# =====================================================================================
+# McGinley Dynamic, Moving Average Envelope, Linear Regression, Supertrend, Vortex
+# =====================================================================================
+def mcginley_ref(p, n, k):
+    out = [p[0]]
+    for i in range(1, len(p)):
+        out.append(out[-1] + (p[i] - out[-1]) / (k * n * (p[i] / out[-1]) ** 4))
+    return np.array(out)
+
+
+def envelope_ref(p, n, pct):
+    mid = sma_ref(p, n)
+    return mid, mid * (1 + pct / 100), mid * (1 - pct / 100)
+
+
+def linreg_ref(p, n):
+    value, slope = [np.nan] * len(p), [np.nan] * len(p)
+    x = np.arange(n)
+    for i in range(n - 1, len(p)):
+        m, b = np.polyfit(x, p[i - n + 1 : i + 1], 1)  # least squares, independent of the closed form
+        value[i], slope[i] = m * (n - 1) + b, m
+    return np.array(value), np.array(slope)
+
+
+def vortex_ref(h, l, c, n):
+    tr, vp, vm = [h[0] - l[0]], [np.nan], [np.nan]
+    for i in range(1, len(c)):
+        tr.append(max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])))
+        vp.append(abs(h[i] - l[i - 1]))
+        vm.append(abs(l[i] - h[i - 1]))
+    up, dn = [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(n, len(c)):
+        t = sum(tr[i - n + 1 : i + 1])
+        up[i], dn[i] = sum(vp[i - n + 1 : i + 1]) / t, sum(vm[i - n + 1 : i + 1]) / t
+    return np.array(up), np.array(dn)
+
+
+def supertrend_ref(h, l, c, n, k):
+    """A fresh transcription of the widely used charting-platform definition, written with explicit previous values."""
+    a = atr_ref_same_seed(h, l, c, n)
+    up1 = dn1 = line_prev = None
+    trend = 1
+    out = []
+    for i in range(len(c)):
+        mid = (h[i] + l[i]) / 2
+        up_b, dn_b = mid - k * a[i], mid + k * a[i]
+        if i == 0:
+            up, dn = up_b, dn_b
+        else:
+            up = max(up_b, up1) if c[i - 1] > up1 else up_b
+            dn = min(dn_b, dn1) if c[i - 1] < dn1 else dn_b
+            if trend == -1 and c[i] > dn1:
+                trend = 1
+            elif trend == 1 and c[i] < up1:
+                trend = -1
+        out.append(up if trend == 1 else dn)
+        up1, dn1 = up, dn
+    return np.array(out)
+
+
+check("McGinley Dynamic (14, 0.6) vs loop", mcginley(close, 14, 0.6), mcginley_ref(p, 14, 0.6), 1e-9)
+em, eu, el = envelope(close, 20, 2.5)
+mr, ur, lr_ = envelope_ref(p, 20, 2.5)
+check("Envelope middle vs loop", em, mr, 1e-9)
+check("Envelope upper vs loop", eu, ur, 1e-9)
+check("Envelope lower vs loop", el, lr_, 1e-9)
+lv, ls = linreg(close, 20)
+lvr, lsr = linreg_ref(p, 20)
+check("Linear regression value vs np.polyfit", lv, lvr, 1e-8)
+check("Linear regression slope vs np.polyfit", ls, lsr, 1e-8)
+vip, vim = vortex(hi, lo, close, 14)
+vpr, vmr = vortex_ref(H, L, p, 14)
+check("Vortex VI+ vs loop", vip, vpr, 1e-9)
+check("Vortex VI- vs loop", vim, vmr, 1e-9)
+check("Supertrend (10, 3) vs independent transcription", supertrend(hi, lo, close, 10, 3), supertrend_ref(H, L, p, 10, 3), 1e-9)
+
+# Supertrend: in an up-trend the line sits below the close and never falls; in a down-trend it sits above and never rises
+st = supertrend(hi, lo, close, 10, 3).to_numpy()
+side = np.sign(p - st)
+for i in range(2, len(p)):
+    if side[i] == side[i - 1] and side[i] != 0:
+        assert (st[i] >= st[i - 1] - 1e-12) if side[i] > 0 else (st[i] <= st[i - 1] + 1e-12), f"supertrend ratchet broken at bar {i}"
+print("ok  Supertrend line only moves in the trend's favor between flips")
+
+# properties quoted on the pages
+climb2 = pd.Series(np.arange(1000, dtype=float) + 100)
+assert abs((climb2 - mcginley(climb2)).iloc[-1] - 7.672) < 1e-3
+cover_half = lambda f, s_: int((f(s_).iloc[200:] >= 105).idxmax() - 200) if s_.iloc[-1] > s_.iloc[0] else int((f(s_).iloc[200:] <= 105).idxmax() - 200)
+j_up, j_dn = pd.Series([100.0] * 200 + [110.0] * 200), pd.Series([110.0] * 200 + [100.0] * 200)
+assert (cover_half(mcginley, j_up), cover_half(mcginley, j_dn)) == (7, 3)
+assert (cover_half(lambda c: ema(c, 14), j_up), cover_half(lambda c: ema(c, 14), j_dn)) == (4, 4)
+print("ok  McGinley: 7.67 bars behind a steady climb, and 7 bars to cover half an upward jump but 3 for a downward one (EMA: 4 and 4)")
+lv2, ls2 = linreg(climb2, 20)
+assert (lv2 - climb2).abs().iloc[20:].max() < 1e-9 and abs(ls2.iloc[-1] - 1) < 1e-9
+assert round(linreg(j_up, 20)[0].iloc[200:].max() - 110, 1) == 3.0
+print("ok  Linear regression: zero lag and slope exactly 1 on a straight climb; overshoots a 10-point jump by 3.0")
+
+# ---- worked examples quoted on the pages --------------------------------------------
+assert abs((100 + 10 / (0.6 * 14 * 1.1 ** 4)) - 100.8131) < 1e-3
+assert abs(mcginley(pd.Series([100.0, 110.0]), 14, 0.6).iloc[-1] - (100 + 10 / (0.6 * 14 * 1.1 ** 4))) < 1e-12
+assert abs(100 * 1.025 - 102.5) < 1e-12 and abs(100 * 0.975 - 97.5) < 1e-12
+slope_ex = linreg(pd.Series([10.0, 11, 13, 14]), 4)  # least squares line through 10, 11, 13, 14
+assert abs(slope_ex[1].iloc[-1] - 1.4) < 1e-12 and abs(slope_ex[0].iloc[-1] - 14.1) < 1e-12  # slope 7/5, fitted 12 + 1.4 x 1.5
+h5, l5, c5 = pd.Series([11.0, 12, 13, 12, 9]), pd.Series([9.0, 10, 11, 8, 7]), pd.Series([10.0, 11.5, 12.5, 8.5, 7.5])
+assert supertrend(h5, l5, c5, 1, 1).tolist() == [8.0, 9.0, 10.0, 14.5, 10.0]
+v_up, v_dn = vortex(pd.Series([10.0, 12, 13, 14]), pd.Series([9.0, 10, 11, 12]), pd.Series([9.5, 11.5, 12.5, 13.5]), 3)
+tr3 = [max(12 - 10, abs(12 - 9.5), abs(10 - 9.5)), max(13 - 11, abs(13 - 11.5), abs(11 - 11.5)), max(14 - 12, abs(14 - 12.5), abs(12 - 12.5))]
+vm_plus = [abs(12 - 9), abs(13 - 10), abs(14 - 11)]
+assert abs(v_up.iloc[-1] - sum(vm_plus) / sum(tr3)) < 1e-12
+assert abs(mcginley(pd.Series([100.0, 90.0]), 14, 0.6).iloc[-1] - (100 - 10 / (0.6 * 14 * 0.9 ** 4))) < 1e-12
+assert abs((100 - 10 / (0.6 * 14 * 0.9 ** 4)) - 98.185) < 1e-3 and abs(0.6 * 14 * 1.1 ** 4 - 12.298) < 1e-3
+vm_minus = [abs(10 - 10), abs(11 - 12), abs(12 - 13)]
+assert abs(v_up.iloc[-1] - 9 / 6.5) < 1e-12 and abs(v_dn.iloc[-1] - sum(vm_minus) / 6.5) < 1e-12 and abs(sum(vm_minus) / 6.5 - 0.3077) < 1e-3
+print("ok  worked examples (McGinley, Envelope, Linear Regression, Supertrend, Vortex)")
 
 
 # =====================================================================================

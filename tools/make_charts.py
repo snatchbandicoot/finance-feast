@@ -544,6 +544,81 @@ def chart_kama(t):
     return _ma_versus(t, "KAMA versus EMA 20 on synthetic daily data", ind.kama(C), "KAMA", ind.ema(C, 20), "EMA 20", lo=0)
 
 
+def chart_mcginley(t):
+    return _ma_versus(t, "McGinley Dynamic versus EMA 14 through a turn", ind.mcginley(C), "McGinley (14)", ind.ema(C, 14), "EMA 14")
+
+
+def chart_envelope(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Moving Average Envelope (20, 2.5%) and Bollinger Bands on synthetic daily data")
+    price_panel(ax, t)
+    m, u, lo_ = ind.envelope(C, 20, 2.5)
+    bm, bu, bl = ind.bollinger(C, 20, 2)
+    ax.fill_between(C.index, lo_, u, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(u, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(lo_, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(m, color=t["pink"], linewidth=LINE, zorder=4)
+    ax.plot(bu, color=t["teal"], linewidth=1.3, zorder=5)
+    ax.plot(bl, color=t["teal"], linewidth=1.3, zorder=5)
+    lo2, hi2 = min(lo_.min(), bl.min()), max(u.max(), bu.max())
+    pad = (hi2 - lo2) * 0.06
+    ax.set_ylim(lo2 - pad, hi2 + pad * 3.2)
+    from matplotlib.lines import Line2D
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], Patch(facecolor=t["pink"], alpha=0.25, linewidth=0), Line2D([], [], color=t["teal"], linewidth=1.3)],
+           [l[0], "Envelope (SMA 20, 2.5% each side)", "Bollinger (20, 2)"], left=True)
+    return fig
+
+
+def chart_linreg(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Linear Regression (20) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    v, slope = ind.linreg(C, 20)
+    ax.plot(v, color=t["pink"], linewidth=LINE, label="Linear regression 20", zorder=4)
+    ax.plot(ind.sma(C, 20), color=t["teal"], linewidth=LINE, label="SMA 20", zorder=4)
+    seg = pd.concat([C, v])
+    pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, [h[0], h[1], h[2]], [l[0], l[1], l[2]])
+    hline(ax2, t, 0)
+    ax2.plot(slope, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = slope.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Slope of the fitted line, in price units per bar")
+    return fig
+
+
+def chart_supertrend(t):
+    from matplotlib.lines import Line2D
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Supertrend (10, 3) on synthetic daily data")
+    price_panel(ax, t)
+    st = ind.supertrend(H, L, C, 10, 3)
+    long = C > st
+    ax.plot(st.where(long), color=t["pink"], linewidth=LINE, zorder=4)
+    ax.plot(st.where(~long), color=t["teal"], linewidth=LINE, zorder=4)
+    seg = pd.concat([C, st]); pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], Line2D([], [], color=t["pink"], linewidth=LINE), Line2D([], [], color=t["teal"], linewidth=LINE)],
+           [l[0], "Supertrend, below price (long)", "Supertrend, above price (short)"], left=True)
+    return fig
+
+
+def chart_vortex(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Vortex Indicator (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    vp, vm = ind.vortex(H, L, C, 14)
+    hline(ax2, t, 1.0)
+    ax2.plot(vp, color=t["pink"], linewidth=LINE, label="VI+", zorder=4)
+    ax2.plot(vm, color=t["teal"], linewidth=LINE, label="VI-", zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Vortex lines VI+ and VI-, with the 1.0 line")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -574,6 +649,11 @@ CHARTS = {
     "triple-exponential-moving-average": chart_tema,
     "hull-moving-average": chart_hma,
     "kaufman-adaptive-moving-average": chart_kama,
+    "mcginley-dynamic": chart_mcginley,
+    "moving-average-envelope": chart_envelope,
+    "linear-regression": chart_linreg,
+    "supertrend": chart_supertrend,
+    "vortex-indicator": chart_vortex,
 }
 
 if __name__ == "__main__":

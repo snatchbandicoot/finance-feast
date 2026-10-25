@@ -238,3 +238,55 @@ def kama(close, n=10, fast=2, slow=30):
     for i in range(n + 1, len(values)):
         out[i] = out[i - 1] + smoothing.iloc[i] * (values[i] - out[i - 1])
     return pd.Series(out, index=close.index)
+
+
+def mcginley(close, n=14, k=0.6):
+    values = close.to_numpy(dtype=float)
+    out = np.empty(len(values))
+    out[0] = values[0]
+    for i in range(1, len(values)):
+        out[i] = out[i - 1] + (values[i] - out[i - 1]) / (k * n * (values[i] / out[i - 1]) ** 4)
+    return pd.Series(out, index=close.index)
+
+
+def envelope(close, n=20, percent=2.5):
+    middle = close.rolling(n).mean()
+    return middle, middle * (1 + percent / 100), middle * (1 - percent / 100)
+
+
+def linreg(close, n=20):
+    x = np.arange(n)
+    centered = x - x.mean()
+    slope = close.rolling(n).apply(lambda y: (centered * (y - y.mean())).sum() / (centered ** 2).sum(), raw=True)
+    value = close.rolling(n).mean() + slope * (n - 1 - x.mean())
+    return value, slope
+
+
+def supertrend(high, low, close, n=10, k=3):
+    mid = (high + low) / 2
+    width = k * atr(high, low, close, n)
+    basic_up, basic_down = (mid - width).to_numpy(), (mid + width).to_numpy()
+    c = close.to_numpy(dtype=float)
+    up, down, line = basic_up.copy(), basic_down.copy(), np.empty(len(c))
+    trend = 1
+    line[0] = up[0]
+    for i in range(1, len(c)):
+        if c[i - 1] > up[i - 1]:
+            up[i] = max(basic_up[i], up[i - 1])
+        if c[i - 1] < down[i - 1]:
+            down[i] = min(basic_down[i], down[i - 1])
+        if trend == -1 and c[i] > down[i - 1]:
+            trend = 1
+        elif trend == 1 and c[i] < up[i - 1]:
+            trend = -1
+        line[i] = up[i] if trend == 1 else down[i]
+    return pd.Series(line, index=close.index)
+
+
+def vortex(high, low, close, n=14):
+    prev_close = close.shift()
+    true_range = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    plus = (high - low.shift()).abs()
+    minus = (low - high.shift()).abs()
+    total = true_range.rolling(n).sum()
+    return plus.rolling(n).sum() / total, minus.rolling(n).sum() / total

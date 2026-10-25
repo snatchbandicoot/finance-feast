@@ -52,6 +52,17 @@ MEASURES = {
     "dema-ema-distance": lambda h, l, c, v: (c - ind.dema(c, 20), c - ind.ema(c, 20)),
     "tema-dema-distance": lambda h, l, c, v: (c - ind.tema(c, 20), c - ind.dema(c, 20)),
     "kama-ema-distance": lambda h, l, c, v: (c - ind.kama(c), c - ind.ema(c, 20)),
+    "mcginley-ema-distance": lambda h, l, c, v: (c - ind.mcginley(c), c - ind.ema(c, 14)),
+    "envelope-pctb": lambda h, l, c, v: (
+        (lambda m, u, lo: (c - lo) / (u - lo))(*ind.envelope(c, 20, 2.5)),
+        _bb_pctb(c),
+    ),
+    "vortex-di": lambda h, l, c, v: (
+        (lambda a, b: a - b)(*ind.vortex(h, l, c, 14)),
+        (lambda adx, p, m: (p - m) / 100)(*ind.adx(h, l, c, 14)),
+    ),
+    "supertrend-psar-distance": lambda h, l, c, v: (c - ind.supertrend(h, l, c, 10, 3), c - ind.psar(h, l)),
+    "linreg-sma-distance": lambda h, l, c, v: (c - ind.linreg(c, 20)[0], c - ind.sma(c, 20)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
 }
 
@@ -119,6 +130,10 @@ PAIRS = {
     ("double-exponential-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="dema-ema-distance"),
     ("triple-exponential-moving-average", "double-exponential-moving-average"): dict(strength="partial", identity=None, corr="tema-dema-distance"),
     ("kaufman-adaptive-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="kama-ema-distance"),
+    ("mcginley-dynamic", "exponential-moving-average"): dict(strength="near", identity=None, corr="mcginley-ema-distance"),
+    ("moving-average-envelope", "bollinger-bands"): dict(strength="partial", identity=None, corr="envelope-pctb"),
+    ("vortex-indicator", "average-directional-index"): dict(strength="partial", identity=None, corr="vortex-di"),
+    ("supertrend", "parabolic-sar"): dict(strength="partial", identity=None, corr="supertrend-psar-distance"),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -142,6 +157,11 @@ QUOTES = [
     ("double-exponential-moving-average", 2, "dema-ema-distance"),
     ("triple-exponential-moving-average", 2, "tema-dema-distance"),
     ("kaufman-adaptive-moving-average", 2, "kama-ema-distance"),
+    ("mcginley-dynamic", 2, "mcginley-ema-distance"),
+    ("moving-average-envelope", 2, "envelope-pctb"),
+    ("vortex-indicator", 2, "vortex-di"),
+    ("supertrend", 2, "supertrend-psar-distance"),
+    ("linear-regression", 2, "linreg-sma-distance"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),
