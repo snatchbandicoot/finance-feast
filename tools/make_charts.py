@@ -509,6 +509,41 @@ def chart_ppo(t):
     return fig
 
 
+def _ma_versus(t, heading_text, main, main_label, ref, ref_label, lo=170):
+    """A moving average (pink) against a reference average (teal), over price. lo zooms to a turn."""
+    fig, (ax,) = new_fig(t, [1], 4.3)
+    heading(fig, t, heading_text)
+    price_panel(ax, t, lo)
+    ax.plot(main, color=t["pink"], linewidth=LINE, label=main_label, zorder=4)
+    ax.plot(ref, color=t["teal"], linewidth=LINE, label=ref_label, zorder=4)
+    seg = pd.concat([C.loc[lo:], main.loc[lo:], ref.loc[lo:]])
+    pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, h, l)
+    return fig
+
+
+def chart_wma(t):
+    return _ma_versus(t, "WMA 20 versus SMA 20 through a turn", ind.wma(C, 20), "WMA 20", ind.sma(C, 20), "SMA 20")
+
+
+def chart_dema(t):
+    return _ma_versus(t, "DEMA 20 versus EMA 20 through a turn", ind.dema(C, 20), "DEMA 20", ind.ema(C, 20), "EMA 20")
+
+
+def chart_tema(t):
+    return _ma_versus(t, "TEMA 20 versus EMA 20 through a turn", ind.tema(C, 20), "TEMA 20", ind.ema(C, 20), "EMA 20")
+
+
+def chart_hma(t):
+    return _ma_versus(t, "HMA 21 versus WMA 21 through a turn", ind.hma(C, 21), "HMA 21", ind.wma(C, 21), "WMA 21")
+
+
+def chart_kama(t):
+    return _ma_versus(t, "KAMA versus EMA 20 on synthetic daily data", ind.kama(C), "KAMA", ind.ema(C, 20), "EMA 20", lo=0)
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -534,6 +569,11 @@ CHARTS = {
     "ultimate-oscillator": chart_ultimate,
     "chande-momentum-oscillator": chart_cmo,
     "percentage-price-oscillator": chart_ppo,
+    "weighted-moving-average": chart_wma,
+    "double-exponential-moving-average": chart_dema,
+    "triple-exponential-moving-average": chart_tema,
+    "hull-moving-average": chart_hma,
+    "kaufman-adaptive-moving-average": chart_kama,
 }
 
 if __name__ == "__main__":

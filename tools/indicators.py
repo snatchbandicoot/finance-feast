@@ -200,3 +200,41 @@ def ppo(close, fast=12, slow=26, signal=9):
     line = 100 * (close.ewm(span=fast, adjust=False).mean() - slow_ema) / slow_ema
     sig = line.ewm(span=signal, adjust=False).mean()
     return line, sig, line - sig
+
+
+def wma(close, n=20):
+    weights = np.arange(1, n + 1)
+    return close.rolling(n).apply(lambda w: np.dot(w, weights) / weights.sum(), raw=True)
+
+
+def dema(close, n=20):
+    first = close.ewm(span=n, adjust=False).mean()
+    second = first.ewm(span=n, adjust=False).mean()
+    return 2 * first - second
+
+
+def tema(close, n=20):
+    first = close.ewm(span=n, adjust=False).mean()
+    second = first.ewm(span=n, adjust=False).mean()
+    third = second.ewm(span=n, adjust=False).mean()
+    return 3 * first - 3 * second + third
+
+
+def hma(close, n=21):
+    half = n // 2
+    root = round(n ** 0.5)
+    return wma(2 * wma(close, half) - wma(close, n), root)
+
+
+def kama(close, n=10, fast=2, slow=30):
+    change = (close - close.shift(n)).abs()
+    path = close.diff().abs().rolling(n).sum()
+    efficiency = (change / path.replace(0, np.nan)).fillna(0)
+    fast_sc, slow_sc = 2 / (fast + 1), 2 / (slow + 1)
+    smoothing = (efficiency * (fast_sc - slow_sc) + slow_sc) ** 2
+    values = close.to_numpy(dtype=float)
+    out = np.full(len(values), np.nan)
+    out[n] = values[n]
+    for i in range(n + 1, len(values)):
+        out[i] = out[i - 1] + smoothing.iloc[i] * (values[i] - out[i - 1])
+    return pd.Series(out, index=close.index)

@@ -47,6 +47,11 @@ MEASURES = {
         (lambda m, u, lo: (u - lo) / m)(*ind.bollinger(c, 20, 2)),
     ),
     "cmf-obv": lambda h, l, c, v: (ind.cmf(h, l, c, v, 20), ind.obv(c, v).diff(20)),
+    "wma-sma-distance": lambda h, l, c, v: (c - ind.wma(c, 20), c - ind.sma(c, 20)),
+    "wma-ema-distance": lambda h, l, c, v: (c - ind.wma(c, 20), c - ind.ema(c, 20)),
+    "dema-ema-distance": lambda h, l, c, v: (c - ind.dema(c, 20), c - ind.ema(c, 20)),
+    "tema-dema-distance": lambda h, l, c, v: (c - ind.tema(c, 20), c - ind.dema(c, 20)),
+    "kama-ema-distance": lambda h, l, c, v: (c - ind.kama(c), c - ind.ema(c, 20)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
 }
 
@@ -109,6 +114,11 @@ PAIRS = {
     ("keltner-channels", "bollinger-bands"): dict(strength="partial", identity=None, corr="keltner-bb-width"),
     ("chaikin-money-flow", "on-balance-volume"): dict(strength="partial", identity=None, corr="cmf-obv"),
     ("aroon", "donchian-channels"): dict(strength="partial", identity="aroon-donchian", corr=None),
+    ("weighted-moving-average", "simple-moving-average"): dict(strength="near", identity=None, corr="wma-sma-distance"),
+    ("weighted-moving-average", "exponential-moving-average"): dict(strength="near", identity=None, corr="wma-ema-distance"),
+    ("double-exponential-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="dema-ema-distance"),
+    ("triple-exponential-moving-average", "double-exponential-moving-average"): dict(strength="partial", identity=None, corr="tema-dema-distance"),
+    ("kaufman-adaptive-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="kama-ema-distance"),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -127,6 +137,11 @@ QUOTES = [
     ("rate-of-change", 2, "roc-rsi"),
     ("keltner-channels", 2, "keltner-bb-width"),
     ("chaikin-money-flow", 2, "cmf-obv"),
+    ("weighted-moving-average", 2, "wma-sma-distance"),
+    ("weighted-moving-average", 2, "wma-ema-distance"),
+    ("double-exponential-moving-average", 2, "dema-ema-distance"),
+    ("triple-exponential-moving-average", 2, "tema-dema-distance"),
+    ("kaufman-adaptive-moving-average", 2, "kama-ema-distance"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),

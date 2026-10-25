@@ -6,8 +6,8 @@ The functions under test live in tools/indicators.py, and their code is shown on
 import numpy as np
 import pandas as pd
 
-from indicators import (aroon, adx, atr, awesome, bollinger, cci, cmf, cmo, donchian, ema, ichimoku, keltner, macd, obv,
-                        ppo, psar, roc, rsi, sma, stochastic, trix, ultimate, vwap, williams_r)
+from indicators import (aroon, adx, atr, awesome, bollinger, cci, cmf, cmo, dema, donchian, ema, hma, ichimoku, kama,
+                        keltner, macd, obv, ppo, psar, roc, rsi, sma, stochastic, tema, trix, ultimate, vwap, williams_r, wma)
 
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
@@ -616,6 +616,82 @@ print("ok  worked examples (Awesome, TRIX, Ultimate, CMO, PPO)")
 
 
 # =====================================================================================
+# WMA, DEMA, TEMA, HMA, KAMA
+# =====================================================================================
+def wma_ref(p, n):
+    out = [np.nan] * len(p)
+    for i in range(n - 1, len(p)):
+        w = p[i - n + 1 : i + 1]
+        if not np.isnan(w).any():
+            out[i] = sum((k + 1) * w[k] for k in range(n)) / (n * (n + 1) / 2)
+    return np.array(out)
+
+
+def dema_ref(p, n):
+    e1 = ema_ref(p, n)
+    return 2 * e1 - ema_ref(e1, n)
+
+
+def tema_ref(p, n):
+    e1 = ema_ref(p, n)
+    e2 = ema_ref(e1, n)
+    return 3 * e1 - 3 * e2 + ema_ref(e2, n)
+
+
+def hma_ref(p, n):
+    raw = 2 * wma_ref(p, n // 2) - wma_ref(p, n)
+    return wma_ref(raw, round(n ** 0.5))
+
+
+def kama_ref(p, n, fast, slow):
+    fs, ss = 2 / (fast + 1), 2 / (slow + 1)
+    out = [np.nan] * len(p)
+    out[n] = p[n]
+    for i in range(n + 1, len(p)):
+        path = sum(abs(p[k] - p[k - 1]) for k in range(i - n + 1, i + 1))
+        er = 0.0 if path == 0 else abs(p[i] - p[i - n]) / path
+        sc = (er * (fs - ss) + ss) ** 2
+        out[i] = out[i - 1] + sc * (p[i] - out[i - 1])
+    return np.array(out)
+
+
+check("WMA(20) vs loop", wma(close, 20), wma_ref(p, 20), 1e-9)
+check("DEMA(20) vs EMA loops", dema(close, 20), dema_ref(p, 20), 1e-9)
+check("TEMA(20) vs EMA loops", tema(close, 20), tema_ref(p, 20), 1e-9)
+check("HMA(21) vs WMA loops", hma(close, 21), hma_ref(p, 21), 1e-9)
+check("KAMA(10, 2, 30) vs loop", kama(close, 10, 2, 30), kama_ref(p, 10, 2, 30), 1e-9)
+
+# lag on a steady climb (price = bar number): how many bars each average trails price
+climb = pd.Series(np.arange(1000, dtype=float))
+lag = lambda f: climb.iloc[-1] - f(climb).iloc[-1]
+assert abs(lag(lambda c: sma(c, 20)) - 9.5) < 1e-9 and abs(lag(lambda c: ema(c, 20)) - 9.5) < 1e-6
+assert abs(lag(lambda c: wma(c, 20)) - (20 - 1) / 3) < 1e-9
+assert abs(lag(lambda c: dema(c, 20))) < 1e-6 and abs(lag(lambda c: tema(c, 20))) < 1e-6
+assert abs(lag(lambda c: hma(c, 21)) - 2 / 3) < 1e-9
+assert abs(lag(lambda c: kama(c, 10, 2, 30)) - 1.25) < 1e-9  # efficiency 1: alpha = (2/3)^2, lag = (1 - alpha) / alpha
+print("ok  lag on a steady climb: SMA 9.5, EMA 9.5, WMA 6.33, DEMA 0, TEMA 0, HMA 0.67, KAMA 1.25 bars (n = 20, HMA 21)")
+
+# overshoot after a jump from 100 to 110: the cost of low lag
+jump = pd.Series([100.0] * 200 + [110.0] * 200)
+over = lambda f: round(f(jump).iloc[200:].max() - 110, 1)
+assert over(lambda c: ema(c, 20)) == 0 and over(lambda c: wma(c, 20)) == 0 and over(lambda c: kama(c, 10, 2, 30)) == 0
+assert (over(lambda c: dema(c, 20)), over(lambda c: tema(c, 20)), over(lambda c: hma(c, 21))) == (1.2, 1.8, 2.7)
+print("ok  overshoot after a 10-point jump: EMA, WMA, KAMA 0; DEMA 1.2, TEMA 1.8, HMA 2.7 points")
+assert not kama(jump, 10, 2, 30).iloc[10:].isna().any()
+print("ok  KAMA stays defined on perfectly flat data")
+
+# ---- worked examples quoted on the pages --------------------------------------------
+assert abs(wma(pd.Series([10.0, 11, 13]), 3).iloc[-1] - 71 / 6) < 1e-12 and (10 + 11 + 13) / 3 != 71 / 6
+assert 2 * 105 - 103 == 107 and 3 * 105 - 3 * 103 + 101.5 == 107.5
+assert round(21 ** 0.5) == 5 and round(20 ** 0.5) == 4 and 2 * 104 - 100 == 108
+k_up = kama(pd.Series([10.0, 11, 12, 13, 14, 15]), 4, 2, 30)           # efficiency 1: smoothing (2/3)^2
+assert abs(k_up.iloc[5] - (14 + (2 / 3) ** 2 * (15 - 14))) < 1e-12
+k_flat = kama(pd.Series([10.0, 12, 10, 12, 10, 12]), 4, 2, 30)          # efficiency 0: smoothing (2/31)^2
+assert abs(k_flat.iloc[5] - (10 + (2 / 31) ** 2 * (12 - 10))) < 1e-12
+print("ok  worked examples (WMA, DEMA, TEMA, HMA, KAMA)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
@@ -624,32 +700,16 @@ import re
 
 import indicators
 
-PAGES = {
-    "simple-moving-average": "sma",
-    "exponential-moving-average": "ema",
-    "relative-strength-index": "rsi",
-    "macd": "macd",
-    "bollinger-bands": "bollinger",
-    "average-true-range": "atr",
-    "stochastic-oscillator": "stochastic",
-    "volume-weighted-average-price": "vwap",
-    "on-balance-volume": "obv",
-    "average-directional-index": "adx",
-    "parabolic-sar": "psar",
-    "commodity-channel-index": "cci",
-    "williams-percent-r": "williams_r",
-    "rate-of-change": "roc",
-    "aroon": "aroon",
-    "donchian-channels": "donchian",
-    "keltner-channels": "keltner",
-    "chaikin-money-flow": "cmf",
-    "ichimoku-cloud": "ichimoku",
-    "awesome-oscillator": "awesome",
-    "trix": "trix",
-    "ultimate-oscillator": "ultimate",
-    "chande-momentum-oscillator": "cmo",
-    "percentage-price-oscillator": "ppo",
-}
+def _code_function(slug):
+    """The function a study page's first python block defines."""
+    text = (pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies" / f"{slug}.md").read_text()
+    match = re.search(r"```python\n\s*def (\w+)\(", text)
+    assert match, f"{slug}: no python block defining a function"
+    return match.group(1)
+
+
+_studies_dir = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
+PAGES = {f.stem: _code_function(f.stem) for f in sorted(_studies_dir.glob("*.md"))}
 studies = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
 for slug, fn in PAGES.items():
     text = (studies / f"{slug}.md").read_text()
