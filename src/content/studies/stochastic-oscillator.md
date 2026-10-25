@@ -10,7 +10,7 @@ inputs:
   - { name: "%D smoothing", default: 3 }
 verdict: situational
 status: draft
-related: [relative-strength-index, simple-moving-average, macd]
+related: [relative-strength-index, simple-moving-average, macd, williams-percent-r]
 ---
 
 > **In plain English.** Look back over the last N bars and find the highest high and the lowest low. The stochastic tells you where the latest close sits between them, from 0 (at the bottom of the range) to 100 (at the top). Closes near the top of the range score high, closes near the bottom score low. A second, smoother line follows it so you can spot turns.
@@ -106,3 +106,4 @@ What it does not tell you: how large a move will be, or when the range will brea
 - [Relative Strength Index](../relative-strength-index/): the other widely used bounded momentum gauge. RSI measures gains versus losses, and the stochastic measures close versus range.
 - [Simple Moving Average](../simple-moving-average/): both smoothing steps are simple moving averages.
 - [MACD](../macd/): another momentum study, built from moving averages and not from the range.
+- [Williams %R](../williams-percent-r/): the same measurement as the raw reading here, shifted onto a negative scale.
