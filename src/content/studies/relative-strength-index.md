@@ -8,7 +8,7 @@ inputs:
   - { name: length, default: 14 }
 verdict: situational
 status: draft
-related: [simple-moving-average, exponential-moving-average, stochastic-oscillator]
+related: [simple-moving-average, exponential-moving-average, stochastic-oscillator, chande-momentum-oscillator, ultimate-oscillator]
 ---
 
 > **In plain English.** A score from 0 to 100 for how much of the recent price movement was up versus down. Above 50 means gains have been winning, below 50 means losses have. Think of it as a momentum meter, not a buy or sell switch.
@@ -90,7 +90,7 @@ What it does not tell you: when a move will end. A reading is a description of t
 
 ## Implementation variations
 
-- **Smoothing.** Wilder's smoothing, an EMA with $\alpha = 1/N$, is standard. Some tools use a plain moving average of gains and losses instead (sometimes called "Cutler's RSI"). It gives different values, and a version with a plain average is not the same indicator.
+- **Smoothing.** Wilder's smoothing, an EMA with $\alpha = 1/N$, is standard. Some tools use a plain moving average of gains and losses instead (sometimes called "Cutler's RSI"). It gives different values, and a version with a plain average is not the same indicator. The [Chande Momentum Oscillator](../chande-momentum-oscillator/) is exactly this version, rescaled.
 - **Starting values.** As noted above, the seed differs between tools, so early values differ.
 
 If an RSI on one chart disagrees with another tool's RSI of the same length, these two are the first places to look.

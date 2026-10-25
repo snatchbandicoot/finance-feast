@@ -10,7 +10,7 @@ inputs:
   - { name: signal length, default: 9 }
 verdict: situational
 status: draft
-related: [exponential-moving-average, simple-moving-average, relative-strength-index]
+related: [exponential-moving-average, simple-moving-average, relative-strength-index, percentage-price-oscillator, awesome-oscillator]
 ---
 
 > **In plain English.** MACD subtracts a slow moving average from a fast one. When the fast average pulls away from the slow one, the gap grows and the trend has momentum. When the two squeeze back together, the gap shrinks and the trend is tiring. A second, smoothed line and a bar chart of the difference between the two make the turns easier to see.
@@ -85,7 +85,7 @@ Tuning the three numbers to fit past data is the most direct way to build a syst
 
 ## Implementation variations
 
-- **Percentage version (PPO).** Dividing the gap by the slow average, $100 \times (\text{EMA}_{12} - \text{EMA}_{26}) / \text{EMA}_{26}$, gives the *percentage price oscillator*. It is comparable across instruments and across time, and it is what to use when the price level changes a lot.
+- **Percentage version (PPO).** Dividing the gap by the slow average, $100 \times (\text{EMA}_{12} - \text{EMA}_{26}) / \text{EMA}_{26}$, gives the [percentage price oscillator](../percentage-price-oscillator/). It is comparable across instruments and across time, and it is what to use when the price level changes a lot.
 - **Signal line type.** Standard MACD smooths the signal line with an EMA. Some tools offer a simple average instead, which gives different crossover timing.
 - **Histogram scaling.** Some platforms multiply the histogram or draw it on a different axis. The shape is the same.
 - **EMA starting values** differ between tools, so the first few dozen bars will not match across them.
@@ -98,4 +98,6 @@ Tuning the three numbers to fit past data is the most direct way to build a syst
 
 - [Exponential Moving Average](../exponential-moving-average/): the building block. The zero-line cross is the cross of two EMAs.
 - [Simple Moving Average](../simple-moving-average/): the equal-weight alternative.
+- [Percentage Price Oscillator](../percentage-price-oscillator/): MACD as a percentage, comparable across instruments.
+- [Awesome Oscillator](../awesome-oscillator/): nearly the same line, built from simple averages of the bar midpoint.
 - [Relative Strength Index](../relative-strength-index/): another momentum reading. RSI is bounded (0 to 100) and comparable across instruments. MACD is not.

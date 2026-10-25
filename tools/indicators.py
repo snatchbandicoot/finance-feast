@@ -163,3 +163,40 @@ def ichimoku(high, low, close, conversion=9, base=26, span_b=52, shift=26):
     chikou = close.copy()
     chikou.index = chikou.index - shift
     return tenkan, kijun, senkou_a, senkou_b, chikou
+
+
+def awesome(high, low, fast=5, slow=34):
+    median = (high + low) / 2
+    return median.rolling(fast).mean() - median.rolling(slow).mean()
+
+
+def trix(close, n=15):
+    triple = close.ewm(span=n, adjust=False).mean().ewm(span=n, adjust=False).mean().ewm(span=n, adjust=False).mean()
+    return 100 * (triple / triple.shift(1) - 1)
+
+
+def ultimate(high, low, close, short=7, mid=14, long=28):
+    prev_close = close.shift()
+    low_ref = pd.concat([low, prev_close], axis=1).min(axis=1)
+    high_ref = pd.concat([high, prev_close], axis=1).max(axis=1)
+    buying = close - low_ref
+    true_range = high_ref - low_ref
+
+    def average(n):
+        return buying.rolling(n).sum() / true_range.rolling(n).sum()
+
+    return 100 * (4 * average(short) + 2 * average(mid) + average(long)) / 7
+
+
+def cmo(close, n=14):
+    change = close.diff()
+    up = change.clip(lower=0).rolling(n).sum()
+    down = (-change).clip(lower=0).rolling(n).sum()
+    return 100 * (up - down) / (up + down)
+
+
+def ppo(close, fast=12, slow=26, signal=9):
+    slow_ema = close.ewm(span=slow, adjust=False).mean()
+    line = 100 * (close.ewm(span=fast, adjust=False).mean() - slow_ema) / slow_ema
+    sig = line.ewm(span=signal, adjust=False).mean()
+    return line, sig, line - sig
