@@ -7,6 +7,7 @@ const categories = [...new Set(studies.map((s) => s.data.category))].sort();
 ---
 <Base title="Studies Library">
   <h1>Studies Library</h1>
+  <p>Plain-language explanations of technical studies, with honest verdicts. Many studies measure nearly the same thing, so see the <a href={`${base}/overlaps/`}>overlap guide</a> before adding another one to a chart.</p>
 
   <link href={`${base}/pagefind/pagefind-ui.css`} rel="stylesheet" />
   <div id="search"></div>
@@ -38,7 +39,7 @@ const categories = [...new Set(studies.map((s) => s.data.category))].sort();
     });
     // Pagefind assets only exist after `npm run build`; skip quietly in dev.
     import(`${base}/pagefind/pagefind-ui.js`).then(
-      () => new PagefindUI({ element: '#search', showSubResults: true, bundlePath: `${base}/pagefind/`, baseUrl: `${base}/` }),
+      () => new PagefindUI({ element: '#search', showSubResults: true, showImages: false, bundlePath: `${base}/pagefind/`, baseUrl: `${base}/` }),
       () => { document.getElementById('search').textContent = 'Search is available in the built site.'; },
     );
   </script>

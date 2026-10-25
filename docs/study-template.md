@@ -27,7 +27,9 @@ Plain English, no jargon. What question does this study answer about price or vo
 
 Step by step, then the formula.
 
-$$ \text{formula here} $$
+$$
+\text{formula here}
+$$
 
 Worked example with small numbers a reader can check by hand.
 

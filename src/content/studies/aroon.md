@@ -9,6 +9,10 @@ inputs:
 verdict: situational
 status: draft
 related: [average-directional-index, donchian-channels, parabolic-sar]
+overlaps:
+  - with: donchian-channels
+    strength: partial
+    note: "Aroon Up is 100 exactly when the bar sets a new 25-bar high, which is the same event as a Donchian upper-channel breakout. Beyond that event, the two studies differ."
 ---
 
 > **In plain English.** Aroon asks how long ago the highest price of the last 25 bars was set. If it was set just now, Aroon Up reads near 100. If it was set 25 bars ago, it reads 0. Aroon Down does the same for the lowest price. A healthy uptrend shows Up high and Down low. It measures timing and not size, so a new high by a hair counts the same as a breakout.
@@ -27,9 +31,13 @@ This is a different kind of information from the moving-average studies, which m
 
 Look at the last $N + 1$ bars (the current bar and the $N$ before it). Let the highest high in that window have been set $k_H$ bars ago (0 if it is the current bar), and the lowest low $k_L$ bars ago:
 
-$$ \text{Aroon Up} = 100 \cdot \frac{N - k_H}{N} \qquad \text{Aroon Down} = 100 \cdot \frac{N - k_L}{N} $$
+$$
+\text{Aroon Up} = 100 \cdot \frac{N - k_H}{N} \qquad \text{Aroon Down} = 100 \cdot \frac{N - k_L}{N}
+$$
 
-$$ \text{Aroon Oscillator} = \text{Aroon Up} - \text{Aroon Down} $$
+$$
+\text{Aroon Oscillator} = \text{Aroon Up} - \text{Aroon Down}
+$$
 
 **Worked example.** With $N = 4$, a window of five bars has highs of 10, 12, 11, 11.5, 11.2 and lows of 9, 10, 9.5, 9.8, 9.4. The highest high, 12, was set 3 bars ago, so Aroon Up $= 100 \times (4 - 3)/4 = 25$. The lowest low, 9, was set 4 bars ago, so Aroon Down $= 100 \times (4 - 4)/4 = 0$. The oscillator is $+25$.
 

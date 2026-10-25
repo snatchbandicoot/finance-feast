@@ -9,6 +9,15 @@ inputs:
 verdict: redundant
 status: draft
 related: [bollinger-bands, relative-strength-index, simple-moving-average]
+overlaps:
+  - with: bollinger-bands
+    strength: near
+    corr: 0.98
+    note: "Both measure how far price is from its 20-bar average in units of how spread out prices have been. CCI uses the typical price and mean deviation, and Bollinger %B uses the close and standard deviation."
+  - with: relative-strength-index
+    strength: partial
+    corr: 0.82
+    note: "Both are oscillators of where price sits compared with its recent past, so they often agree, but they are built differently."
 ---
 
 > **In plain English.** CCI measures how far the latest typical price (the average of the high, low and close) is from its recent average, in units of how much prices typically stray from that average. Zero means right at the average. Plus or minus 100 means unusually far above or below it. It was designed for commodity markets, hence the name, but it can be used on anything.
@@ -25,9 +34,13 @@ The distance between the typical price and its simple average over the last $N$ 
 
 Let $TP = (H + L + C)/3$, the typical price. Over the last $N$ bars, find its average and its mean deviation, which is the average distance of each typical price from that average:
 
-$$ \overline{TP} = \frac{1}{N}\sum_{i=0}^{N-1} TP_{t-i} \qquad MD = \frac{1}{N}\sum_{i=0}^{N-1} \left| TP_{t-i} - \overline{TP} \right| $$
+$$
+\overline{TP} = \frac{1}{N}\sum_{i=0}^{N-1} TP_{t-i} \qquad MD = \frac{1}{N}\sum_{i=0}^{N-1} \left| TP_{t-i} - \overline{TP} \right|
+$$
 
-$$ CCI_t = \frac{TP_t - \overline{TP}}{0.015 \cdot MD} $$
+$$
+CCI_t = \frac{TP_t - \overline{TP}}{0.015 \cdot MD}
+$$
 
 The constant 0.015 is Lambert's. It was chosen so that a good share of readings fall between −100 and +100.
 
@@ -82,7 +95,7 @@ What it does not tell you: which of the two readings of the 100 lines is right f
 
 ## Is it useful?
 
-**Redundant.** CCI and Bollinger %B both measure the distance of price from its 20-bar average in units of how spread out prices have been. They differ in two small details (typical price and mean deviation, against the close and the standard deviation). On the sample data the two correlated at 0.98, and CCI also correlated at 0.83 with RSI. If you already use Bollinger Bands, CCI is very unlikely to tell you something they do not. Its one real advantage is the typical price, which includes the bar's range, and that is a small one.
+**Redundant.** CCI and Bollinger %B both measure the distance of price from its 20-bar average in units of how spread out prices have been. They differ in two small details (typical price and mean deviation, against the close and the standard deviation). On the sample data the two correlated at 0.98, and CCI also correlated at 0.82 with RSI. If you already use Bollinger Bands, CCI is very unlikely to tell you something they do not. Its one real advantage is the typical price, which includes the bar's range, and that is a small one.
 
 ## Pairs well with / See also
 

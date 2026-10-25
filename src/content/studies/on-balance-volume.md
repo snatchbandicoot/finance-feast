@@ -24,7 +24,9 @@ It makes one simple assumption: that the whole bar's volume belongs to buyers wh
 
 ## Calculation
 
-$$ OBV_t = OBV_{t-1} + \begin{cases} +V_t & \text{if } C_t > C_{t-1} \\ 0 & \text{if } C_t = C_{t-1} \\ -V_t & \text{if } C_t < C_{t-1} \end{cases} $$
+$$
+OBV_t = OBV_{t-1} + \begin{cases} +V_t & \text{if } C_t > C_{t-1} \\ 0 & \text{if } C_t = C_{t-1} \\ -V_t & \text{if } C_t < C_{t-1} \end{cases}
+$$
 
 $V_t$ is the bar's volume and $C_t$ its close.
 

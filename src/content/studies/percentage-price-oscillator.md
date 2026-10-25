@@ -11,6 +11,10 @@ inputs:
 verdict: situational
 status: draft
 related: [macd, exponential-moving-average, awesome-oscillator]
+overlaps:
+  - with: macd
+    strength: identical
+    note: "PPO is MACD divided by the slow average and multiplied by 100, so it carries the same information on a percentage scale."
 ---
 
 > **In plain English.** MACD tells you how many *price units* the fast average is above the slow one. PPO tells you how many *percent*. "The fast average is 0.7 above the slow one" becomes "the fast average is 0.67% above the slow one". That makes a reading mean the same thing on a cheap stock and an expensive one, and in a year when the price was low and one when it was high.
@@ -25,13 +29,17 @@ The same thing as MACD, how far a fast exponential average is from a slow one, b
 
 ## Calculation
 
-$$ \text{PPO}_t = 100 \times \frac{\text{EMA}_{12}(P)_t - \text{EMA}_{26}(P)_t}{\text{EMA}_{26}(P)_t} $$
+$$
+\text{PPO}_t = 100 \times \frac{\text{EMA}_{12}(P)_t - \text{EMA}_{26}(P)_t}{\text{EMA}_{26}(P)_t}
+$$
 
 The signal line and the histogram work as in MACD: the signal is a 9-bar exponential average of the PPO, and the histogram is the PPO minus the signal.
 
 **The link to MACD.** Dividing MACD by the slow average and multiplying by 100 gives the PPO exactly:
 
-$$ \text{PPO} = 100 \times \frac{\text{MACD}}{\text{EMA}_{26}} $$
+$$
+\text{PPO} = 100 \times \frac{\text{MACD}}{\text{EMA}_{26}}
+$$
 
 The check script confirms this over hundreds of bars.
 

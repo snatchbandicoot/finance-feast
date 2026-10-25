@@ -681,3 +681,79 @@ for name, block, colors in (("light", light_block, palette.LIGHT), ("dark", dark
         found = re.search(rf"--{key.replace('_', '-')}:\s*(#[0-9a-fA-F]{{6}})", block)
         assert found and found.group(1).lower() == hex_value.lower(), f"{name} {key}: Base.astro has {found and found.group(1)}, palette.py has {hex_value}"
 print("ok  site color tokens match tools/palette.py (light and dark)")
+
+
+# =====================================================================================
+# Overlaps: what each study's frontmatter claims must match tools/overlaps.py, and every correlation quoted in
+# page text must match the sample data
+# =====================================================================================
+import yaml
+
+import overlaps as ov
+
+root = pathlib.Path(__file__).resolve().parent.parent
+guides = root / "src" / "content" / "guides"
+
+
+def page_path(slug):
+    return guides / (slug.split("/", 1)[1] + ".md") if slug.startswith("guides/") else studies / f"{slug}.md"
+
+
+def frontmatter(path):
+    return yaml.safe_load(path.read_text().split("---")[1])
+
+
+declared = {}
+for f in sorted(studies.glob("*.md")):
+    for o in frontmatter(f).get("overlaps") or []:
+        key = (f.stem, o["with"])
+        assert key in ov.PAIRS, f"{key}: declared in frontmatter but not defined in tools/overlaps.py"
+        assert key not in declared, f"{key}: declared twice"
+        assert (studies / f"{o['with']}.md").is_file(), f"{key}: no such study"
+        assert o.get("note", "").strip(), f"{key}: note is empty"
+        declared[key] = o
+missing = set(ov.PAIRS) - set(declared)
+assert not missing, f"defined in tools/overlaps.py but not declared on any page: {sorted(missing)}"
+
+for key, o in sorted(declared.items()):
+    spec = ov.PAIRS[key]
+    assert o["strength"] == spec["strength"], f"{key}: strength {o['strength']} but tools/overlaps.py says {spec['strength']}"
+    if spec["identity"]:
+        err = ov.identity_error(spec["identity"])
+        assert err < 1e-9, f"{key}: identity {spec['identity']} fails (error {err})"
+    if spec["corr"]:
+        c = ov.measure(spec["corr"])
+        assert "corr" in o and abs(o["corr"] - round(c, 2)) < 1e-9, f"{key}: frontmatter corr {o.get('corr')} but measured {c:.4f}"
+        if spec["strength"] == "near":
+            assert c >= 0.95, f"{key}: 'near' needs correlation of at least 0.95, got {c:.3f}"
+        if spec["strength"] == "partial":
+            assert 0.6 <= c < 0.95, f"{key}: 'partial' needs a correlation from 0.6 to under 0.95, got {c:.3f}"
+    else:
+        assert "corr" not in o, f"{key}: has a corr but tools/overlaps.py defines none"
+print(f"ok  {len(declared)} overlap pairs: frontmatter agrees with tools/overlaps.py (identities exact, correlations measured)")
+
+for page, decimals, name in ov.QUOTES:
+    quoted = f"{ov.measure(name):.{decimals}f}"
+    assert quoted in page_path(page).read_text(), f"{page}: should quote {quoted} ({name}), which is not in the page"
+print(f"ok  {len(ov.QUOTES)} correlations quoted in page text match the sample data")
+
+# every relative link between pages must point to a real page
+link_re = re.compile(r"\]\(\.\./(?:studies/)?([a-z0-9-]+)/\)")
+broken = []
+for f in list(studies.glob("*.md")) + list(guides.glob("*.md")):
+    for slug in link_re.findall(f.read_text()):
+        if not (studies / f"{slug}.md").is_file():
+            broken.append((f.name, slug))
+assert not broken, f"broken links: {broken}"
+print("ok  all links between pages resolve")
+
+
+# a display formula must have its $$ markers on their own lines: written on one line it renders as small inline math
+one_line_display = [
+    (f.name, i + 1)
+    for f in list(studies.glob("*.md")) + list(guides.glob("*.md"))
+    for i, line in enumerate(f.read_text().split("\n"))
+    if re.match(r"^\$\$ .+ \$\$$", line)
+]
+assert not one_line_display, f"one-line $$ formulas render as inline math; put the markers on their own lines: {one_line_display}"
+print("ok  every display formula is a fenced block")
