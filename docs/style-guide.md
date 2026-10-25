@@ -32,7 +32,13 @@ automatically from the `verdict` frontmatter field, so don't repeat it in the su
 **Charts.** One example chart per page, placed at the top of "How to read it", with a caption that
 states only what the chart shows, with the numbers checked against the data. Charts are drawn by
 `tools/make_charts.py` from synthetic data, never hand-edited, and are always described as synthetic.
-Hide warm-up values of recursive indicators. Use at most blue and orange for series, with neutral ink
+Hide warm-up values of recursive indicators. Use pink first and teal second for series (gold only as a third, with a legend), with neutral ink
 for price, a legend whenever a panel has two or more series, and a light and a dark variant.
+
+**Color.** Pink is the primary highlight, sampled from the project's mascot image (`#d21a52`). The palette
+lives in `tools/palette.py`, which the charts read, and is mirrored as CSS tokens in `src/layouts/Base.astro`.
+The check script fails if they differ. Series order is pink, teal, gold, blue. Teal is pink's true complement;
+a lighter, orangier pink failed the colorblind check against teal, but the real pink passes. Text and links use
+`pink_text` (the same pink in light mode, a lighter pink in dark mode) so they stay readable.
 
 **Footer.** Every page carries the site-wide "educational content, not investment advice" footer.

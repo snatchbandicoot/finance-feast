@@ -47,7 +47,7 @@ The first $N - 1$ bars have no value, since the window is not full yet.
 <source media="(prefers-color-scheme: dark)" srcset="../../charts/simple-moving-average-dark.svg">
 <img src="../../charts/simple-moving-average-light.svg" alt="Price with a 20-bar and a 100-bar simple moving average across four regimes" width="840" height="430">
 </picture>
-<figcaption>Synthetic data in four regimes. In the uptrend the 20-bar average (blue) stays under price and follows it up. In the range, price crosses it 12 times. In the selloff both averages turn only after price has already fallen, and the 100-bar average (orange) is smoother and later still.</figcaption>
+<figcaption>Synthetic data in four regimes. In the uptrend the 20-bar average (pink) stays under price and follows it up. In the range, price crosses it 12 times. In the selloff both averages turn only after price has already fallen, and the 100-bar average (teal) is smoother and later still.</figcaption>
 </figure>
 
 - **Slope.** A rising line says the average price of the window is climbing. A flat line says no trend over that window.

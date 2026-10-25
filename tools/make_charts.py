@@ -18,17 +18,17 @@ import pandas as pd
 from matplotlib.patches import Patch
 
 import indicators as ind
+import palette
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "public" / "charts"
 
-# Palette: the validated reference palette (blue and orange are categorical slots 1 and 2).
-# Colors below were run through the dataviz palette validator in both modes.
+# Series colors come from tools/palette.py (pink first, then teal, gold, blue), validated in both modes.
 THEMES = {
     "light": dict(surface="#fcfcfb", ink="#0b0b0b", ink2="#52514e", muted="#8a8984", grid="#e6e5e1",
-                  band="#f3f2ee", blue="#2a78d6", orange="#eb6834"),
+                  band="#f3f2ee", **{k: palette.LIGHT[k] for k in ("pink", "teal", "gold", "blue")}),
     "dark": dict(surface="#1a1a19", ink="#f0efec", ink2="#c3c2b7", muted="#8b8a84", grid="#2e2e2c",
-                 band="#222221", blue="#3987e5", orange="#d95926"),
+                 band="#222221", **{k: palette.DARK[k] for k in ("pink", "teal", "gold", "blue")}),
 }
 
 plt.rcParams.update({
@@ -147,8 +147,8 @@ def chart_sma(t):
     fig, (ax,) = new_fig(t, [1], 4.3)
     heading(fig, t, "Simple moving averages on synthetic daily data")
     price_panel(ax, t)
-    ax.plot(ind.sma(C, 20), color=t["blue"], linewidth=LINE, label="SMA 20", zorder=4)
-    ax.plot(ind.sma(C, 100), color=t["orange"], linewidth=LINE, label="SMA 100", zorder=4)
+    ax.plot(ind.sma(C, 20), color=t["pink"], linewidth=LINE, label="SMA 20", zorder=4)
+    ax.plot(ind.sma(C, 100), color=t["teal"], linewidth=LINE, label="SMA 100", zorder=4)
     h, l = ax.get_legend_handles_labels()
     legend(ax, t, h, l)
     return fig
@@ -159,8 +159,8 @@ def chart_ema(t):
     fig, (ax,) = new_fig(t, [1], 4.3)
     heading(fig, t, "EMA 20 versus SMA 20 through a turn")
     price_panel(ax, t, lo)
-    ax.plot(ind.ema(C, 20), color=t["blue"], linewidth=LINE, label="EMA 20", zorder=4)
-    ax.plot(ind.sma(C, 20), color=t["orange"], linewidth=LINE, label="SMA 20", zorder=4)
+    ax.plot(ind.ema(C, 20), color=t["pink"], linewidth=LINE, label="EMA 20", zorder=4)
+    ax.plot(ind.sma(C, 20), color=t["teal"], linewidth=LINE, label="SMA 20", zorder=4)
     h, l = ax.get_legend_handles_labels()
     legend(ax, t, h, l)
     return fig
@@ -173,7 +173,7 @@ def chart_rsi(t):
     r = warm(ind.rsi(C, 14), 30)
     for y in (30, 70):
         hline(ax2, t, y)
-    ax2.plot(r, color=t["blue"], linewidth=LINE, zorder=4)
+    ax2.plot(r, color=t["pink"], linewidth=LINE, zorder=4)
     ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
     shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "RSI (14), with the 30 and 70 lines")
     return fig
@@ -186,8 +186,8 @@ def chart_stochastic(t):
     _, k, d = ind.stochastic(H, L, C)
     for y in (20, 80):
         hline(ax2, t, y)
-    ax2.plot(k, color=t["blue"], linewidth=LINE, label="%K", zorder=4)
-    ax2.plot(d, color=t["orange"], linewidth=LINE, label="%D", zorder=4)
+    ax2.plot(k, color=t["pink"], linewidth=LINE, label="%K", zorder=4)
+    ax2.plot(d, color=t["teal"], linewidth=LINE, label="%D", zorder=4)
     ax2.set_ylim(0, 100); ax2.set_yticks([0, 20, 50, 80, 100])
     shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Stochastic, with the 20 and 80 lines")
     h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
@@ -201,8 +201,8 @@ def chart_macd(t):
     line, sig, hist = (warm(x, 40) for x in ind.macd(C))
     hline(ax2, t, 0)
     ax2.bar(hist.index, hist, width=0.8, color=t["ink2"], alpha=0.35, linewidth=0, label="Histogram", zorder=2)
-    ax2.plot(line, color=t["blue"], linewidth=LINE, label="MACD", zorder=4)
-    ax2.plot(sig, color=t["orange"], linewidth=LINE, label="Signal", zorder=4)
+    ax2.plot(line, color=t["pink"], linewidth=LINE, label="MACD", zorder=4)
+    ax2.plot(sig, color=t["teal"], linewidth=LINE, label="Signal", zorder=4)
     shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "MACD, signal line and histogram")
     h, l = ax2.get_legend_handles_labels()
     by_label = dict(zip(l, h))
@@ -217,12 +217,12 @@ def chart_bollinger(t):
     mid, up, lo_ = ind.bollinger(C, 20, 2)
     pad = (up.max() - lo_.min()) * 0.06
     ax.set_ylim(lo_.min() - pad, up.max() + pad * 3.2)
-    ax.fill_between(C.index, lo_, up, color=t["blue"], alpha=0.10, linewidth=0, zorder=2)
-    ax.plot(up, color=t["blue"], linewidth=1.0, zorder=4)
-    ax.plot(lo_, color=t["blue"], linewidth=1.0, zorder=4)
-    ax.plot(mid, color=t["blue"], linewidth=LINE, label="SMA 20", zorder=4)
+    ax.fill_between(C.index, lo_, up, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(up, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(lo_, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(mid, color=t["pink"], linewidth=LINE, label="SMA 20", zorder=4)
     h, l = ax.get_legend_handles_labels()
-    legend(ax, t, [h[0], Patch(facecolor=t["blue"], alpha=0.25, linewidth=0)] , [l[0], "Bands: 2 standard deviations"])
+    legend(ax, t, [h[0], Patch(facecolor=t["pink"], alpha=0.25, linewidth=0)] , [l[0], "Bands: 2 standard deviations"])
     return fig
 
 
@@ -231,7 +231,7 @@ def chart_atr(t):
     heading(fig, t, "Average True Range (14) on synthetic daily data")
     price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
     a = warm(ind.atr(H, L, C, 14), 30)
-    ax2.plot(a, color=t["blue"], linewidth=LINE, zorder=4)
+    ax2.plot(a, color=t["pink"], linewidth=LINE, zorder=4)
     ax2.set_ylim(0, a.max() * 1.12)  # a.max() ignores the hidden warm-up values
     shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "ATR (14), in price units")
     return fig
@@ -242,7 +242,7 @@ def chart_obv(t):
     heading(fig, t, "On-Balance Volume on synthetic daily data")
     price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
     o = ind.obv(C, V) / 1e6
-    ax2.plot(o, color=t["blue"], linewidth=LINE, zorder=4)
+    ax2.plot(o, color=t["pink"], linewidth=LINE, zorder=4)
     shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "OBV, in millions of shares (the level is arbitrary; watch the shape)")
     return fig
 
@@ -256,7 +256,7 @@ def chart_vwap(t):
     ax.plot(intraday["close"], color=t["ink2"], linewidth=PRICE, label="Close", zorder=3)
     for sess in sorted(s.unique()):
         idx = intraday.index[s == sess]
-        ax.plot(v.loc[idx], color=t["blue"], linewidth=LINE, label="VWAP" if sess == 0 else None, zorder=4)
+        ax.plot(v.loc[idx], color=t["pink"], linewidth=LINE, label="VWAP" if sess == 0 else None, zorder=4)
         ax.text((idx[0] + idx[-1]) / 2, 0.97, f"Session {sess + 1}", transform=ax.get_xaxis_transform(),
                 color=t["muted"], fontsize=8.5, ha="center", va="top")
         if sess:

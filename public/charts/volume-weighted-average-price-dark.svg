@@ -930,7 +930,7 @@ L 218.522769 150.592665
 L 220.887692 149.342881 
 L 223.252615 147.403668 
 L 225.617538 146.37002 
-" clip-path="url(#p4b8b2bbc17)" style="fill: none; stroke: #3987e5; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p4b8b2bbc17)" style="fill: none; stroke: #dc2a5f; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="line2d_24">
     <path d="M 227.982462 119.382695 
@@ -1011,7 +1011,7 @@ L 402.986769 134.999442
 L 405.351692 135.532593 
 L 407.716615 136.747538 
 L 410.081538 137.693643 
-" clip-path="url(#p4b8b2bbc17)" style="fill: none; stroke: #3987e5; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p4b8b2bbc17)" style="fill: none; stroke: #dc2a5f; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="line2d_25">
     <path d="M 412.446462 188.883607 
@@ -1092,7 +1092,7 @@ L 587.450769 188.444733
 L 589.815692 188.690818 
 L 592.180615 189.182018 
 L 594.545538 189.812739 
-" clip-path="url(#p4b8b2bbc17)" style="fill: none; stroke: #3987e5; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p4b8b2bbc17)" style="fill: none; stroke: #dc2a5f; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="legend_1">
     <g id="line2d_26">
@@ -1145,7 +1145,7 @@ z
      <path d="M 542.984172 37.877008 
 L 549.784172 37.877008 
 L 556.584172 37.877008 
-" style="fill: none; stroke: #3987e5; stroke-width: 1.5; stroke-linecap: square"/>
+" style="fill: none; stroke: #dc2a5f; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_12">
      <!-- VWAP -->

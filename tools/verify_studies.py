@@ -280,3 +280,16 @@ for slug in PAGES:
     for mode in ("light", "dark"):
         assert (charts / f"{slug}-{mode}.svg").is_file(), f"missing chart {slug}-{mode}.svg"
 print(f"ok  every page embeds its light and dark chart, and both files exist ({len(PAGES)} pages)")
+
+
+# the site's CSS color tokens must match tools/palette.py (charts and site share one palette)
+import palette
+
+css = (pathlib.Path(__file__).resolve().parent.parent / "src" / "layouts" / "Base.astro").read_text()
+light_block = re.search(r":root \{(.*?)\}", css, re.S).group(1)
+dark_block = re.search(r"prefers-color-scheme: dark\) \{\s*:root \{(.*?)\}", css, re.S).group(1)
+for name, block, colors in (("light", light_block, palette.LIGHT), ("dark", dark_block, palette.DARK)):
+    for key, hex_value in colors.items():
+        found = re.search(rf"--{key.replace('_', '-')}:\s*(#[0-9a-fA-F]{{6}})", block)
+        assert found and found.group(1).lower() == hex_value.lower(), f"{name} {key}: Base.astro has {found and found.group(1)}, palette.py has {hex_value}"
+print("ok  site color tokens match tools/palette.py (light and dark)")
