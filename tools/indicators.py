@@ -515,3 +515,25 @@ def price_volume_trend(close, volume):
 
 def balance_of_market_power(open_, high, low, close, n=14):
     return ((close - open_) / (high - low).replace(0, np.nan)).rolling(n).mean()
+
+
+def volume_profile(high, low, close, volume, bins=24, share=0.7):
+    typical = (high + low + close) / 3
+    edges = np.linspace(low.min(), high.max(), bins + 1)
+    bucket = pd.cut(typical, edges, include_lowest=True, labels=False)
+    totals = volume.groupby(bucket).sum().reindex(range(bins), fill_value=0.0)
+    centers = (edges[:-1] + edges[1:]) / 2
+    poc = int(totals.to_numpy().argmax())
+    lo_bin = hi_bin = poc
+    covered = totals.iloc[poc]
+    while covered < share * totals.sum():
+        below = totals.iloc[lo_bin - 1] if lo_bin > 0 else -1.0
+        above = totals.iloc[hi_bin + 1] if hi_bin < bins - 1 else -1.0
+        if above >= below:
+            hi_bin += 1
+            covered += above
+        else:
+            lo_bin -= 1
+            covered += below
+    profile = pd.Series(totals.to_numpy(), index=centers)
+    return profile, centers[poc], edges[lo_bin], edges[hi_bin + 1]

@@ -12,7 +12,7 @@ npm run dev        # local site with live reload
 npm run build      # static site in dist/, plus the search index
 ```
 
-Study pages live in `src/content/studies/`. Copy the structure in `docs/study-template.md` and
+Study pages live in `src/content/studies/`. See `docs/coverage.md` for what is covered and what is not. Copy the structure in `docs/study-template.md` and
 follow `docs/style-guide.md`. New pages start as `status: draft` until reviewed.
 
 ## Checking the math

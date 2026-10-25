@@ -1346,6 +1346,48 @@ print("ok  worked examples (Klinger, Volume Oscillator, NVI/PVI, Price Volume Tr
 
 
 # =====================================================================================
+# Volume Profile
+# =====================================================================================
+from indicators import volume_profile
+
+
+def profile_ref(h, l, c, v, bins, share):
+    tp = [(h[i] + l[i] + c[i]) / 3 for i in range(len(c))]
+    bottom, top = min(l), max(h)
+    width = (top - bottom) / bins
+    totals = [0.0] * bins
+    for x, vol in zip(tp, v):
+        k = min(bins - 1, max(0, int(np.ceil((x - bottom) / width)) - 1))  # buckets are open on the left and closed on the right
+        totals[k] += vol
+    poc = max(range(bins), key=lambda k: totals[k])
+    lo_k = hi_k = poc
+    covered = totals[poc]
+    while covered < share * sum(totals):
+        down = totals[lo_k - 1] if lo_k > 0 else -1.0
+        up = totals[hi_k + 1] if hi_k < bins - 1 else -1.0
+        if up >= down:
+            hi_k += 1
+            covered += up
+        else:
+            lo_k -= 1
+            covered += down
+    return totals, bottom + width * (poc + 0.5), bottom + width * lo_k, bottom + width * (hi_k + 1)
+
+
+vp, v_poc, v_val, v_vah = volume_profile(hi, lo, close, volume2, 24, 0.7)
+tot_r, poc_r, val_r, vah_r = profile_ref(H, L, p, V2, 24, 0.7)
+assert np.allclose(vp.to_numpy(), tot_r) and abs(v_poc - poc_r) < 1e-9 and abs(v_val - val_r) < 1e-9 and abs(v_vah - vah_r) < 1e-9
+print("ok  Volume Profile (24 bins, 70%) vs independent loop: bins, point of control and value area agree")
+assert abs(vp.sum() - volume2.sum()) < 1e-3 and vp.loc[v_poc] == vp.max()
+assert vp.loc[(vp.index > v_val) & (vp.index < v_vah)].sum() >= 0.7 * vp.sum() - 1e-6
+print("ok  Volume Profile: every bar's volume lands in exactly one bin; the value area holds at least 70% of the volume")
+hh = pd.Series([10.0, 11.5, 11.5, 11.5, 12.5, 13.0])
+ex_p, ex_poc, ex_val, ex_vah = volume_profile(hh, hh, hh, pd.Series([100.0] * 6), 3, 0.7)
+assert ex_p.tolist() == [100.0, 300.0, 200.0] and ex_poc == 11.5 and (ex_val, ex_vah) == (11.0, 13.0)
+print("ok  worked example (Volume Profile)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect

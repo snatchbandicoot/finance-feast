@@ -1030,6 +1030,39 @@ def chart_bmp(t):
     return fig
 
 
+def chart_volume_profile(t):
+    fig = plt.figure(figsize=(8.4, 4.8), facecolor=t["surface"])
+    gs = fig.add_gridspec(1, 2, width_ratios=[3.2, 1], wspace=0.04, left=0.07, right=0.985, top=0.83, bottom=0.10)
+    ax, axh = fig.add_subplot(gs[0]), fig.add_subplot(gs[1], sharey=None)
+    for a_ in (ax, axh):
+        a_.set_facecolor(t["surface"])
+        for side in ("top", "right", "left", "bottom"):
+            a_.spines[side].set_visible(False)
+        a_.grid(axis="y", color=t["grid"], linewidth=0.8); a_.set_axisbelow(True)
+        a_.tick_params(length=0, colors=t["ink2"], labelsize=8.5)
+    heading(fig, t, "Volume Profile (24 price bins, 70% value area) on synthetic daily data")
+    profile, poc, val, vah = ind.volume_profile(H, L, C, V, 24, 0.7)
+    lo_, hi_ = L.min(), H.max()
+    pad = (hi_ - lo_) * 0.04
+    ax.plot(C.index, C, color=t["ink2"], linewidth=PRICE, label="Close", zorder=3)
+    ax.axhspan(val, vah, color=t["teal"], alpha=0.10, linewidth=0, zorder=1)
+    ax.axhline(poc, color=t["pink"], linewidth=LINE, zorder=4)
+    ax.set_ylim(lo_ - pad, hi_ + pad); ax.set_xlim(-0.5, len(C) - 0.5)
+    x_axis(ax, t)
+    width = (hi_ - lo_) / 24
+    inside = (profile.index > val) & (profile.index < vah)
+    axh.barh(profile.index, profile / 1e6, height=width * 0.9, color=t["ink2"], alpha=0.35, linewidth=0, zorder=2)
+    axh.barh(profile.index[inside], profile[inside] / 1e6, height=width * 0.9, color=t["teal"], alpha=0.6, linewidth=0, zorder=3)
+    axh.barh([poc], [profile.loc[poc] / 1e6], height=width * 0.9, color=t["pink"], linewidth=0, zorder=4)
+    axh.set_ylim(lo_ - pad, hi_ + pad); axh.tick_params(labelleft=False)
+    axh.set_xlabel("Volume in bin (millions)", color=t["muted"], fontsize=8.5, labelpad=6)
+    from matplotlib.lines import Line2D
+    legend(ax, t, [Line2D([], [], color=t["ink2"], linewidth=PRICE), Line2D([], [], color=t["pink"], linewidth=LINE),
+                   Patch(facecolor=t["teal"], alpha=0.35, linewidth=0)],
+           ["Close", "Point of control", "Value area (70% of volume)"], left=True)
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -1096,6 +1129,7 @@ CHARTS = {
     "positive-volume-index": chart_pvi,
     "price-volume-trend": chart_pvt,
     "balance-of-market-power": chart_bmp,
+    "volume-profile": chart_volume_profile,
 }
 
 if __name__ == "__main__":
