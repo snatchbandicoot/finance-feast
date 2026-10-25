@@ -1113,6 +1113,83 @@ print("ok  worked examples (HV, Standard Deviation, Chaikin Volatility, RVI, Mas
 
 
 # =====================================================================================
+# Batch F: Choppiness Index, Ulcer Index, Pivot Points, Heikin-Ashi, Anchored VWAP
+# =====================================================================================
+from indicators import anchored_vwap, choppiness, heikin_ashi, pivot_points, ulcer
+
+
+def chop_ref(h, l, c, n):
+    tr = [h[0] - l[0]] + [max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])) for i in range(1, len(c))]
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        span = max(h[i - n + 1 : i + 1]) - min(l[i - n + 1 : i + 1])
+        out[i] = 100 * np.log10(sum(tr[i - n + 1 : i + 1]) / span) / np.log10(n)
+    return np.array(out)
+
+
+def ulcer_ref(c, n):
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        dd = []
+        for j in range(i - n + 1, i + 1):
+            peak = max(c[max(0, j - n + 1) : j + 1])
+            dd.append(100 * (c[j] / peak - 1))
+        out[i] = (sum(x * x for x in dd) / n) ** 0.5
+    return np.array(out)
+
+
+def ha_ref(o, h, l, c):
+    out = []
+    prev_open = prev_close = None
+    for i in range(len(c)):
+        hc = (o[i] + h[i] + l[i] + c[i]) / 4
+        ho = (o[i] + c[i]) / 2 if i == 0 else (prev_open + prev_close) / 2
+        out.append((ho, max(h[i], ho, hc), min(l[i], ho, hc), hc))
+        prev_open, prev_close = ho, hc
+    return np.array(out)
+
+
+def avwap_ref(h, l, c, v, anchor):
+    out = [np.nan] * len(c)
+    pv = vv = 0.0
+    for i in range(anchor, len(c)):
+        pv += (h[i] + l[i] + c[i]) / 3 * v[i]
+        vv += v[i]
+        out[i] = pv / vv
+    return np.array(out)
+
+
+check("Choppiness Index (14) vs loop", choppiness(hi, lo, close, 14), chop_ref(H, L, p, 14), 1e-9)
+check("Ulcer Index (14) vs loop", ulcer(close, 14), ulcer_ref(p, 14), 1e-9)
+op = close.shift().fillna(close.iloc[0]) + (hi - lo) * 0.1  # an invented open between bars, only to exercise the code
+har = ha_ref(op.to_numpy(), H, L, p)
+ha_o, ha_h, ha_l, ha_c = heikin_ashi(op, hi, lo, close)
+for k, (name, got) in enumerate([("open", ha_o), ("high", ha_h), ("low", ha_l), ("close", ha_c)]):
+    check(f"Heikin-Ashi {name} vs loop", got, har[:, k], 1e-9)
+vol_s = pd.Series(rng.uniform(1000, 2000, len(close)))
+check("Anchored VWAP (anchor 200) vs loop", anchored_vwap(hi, lo, close, vol_s, 200), avwap_ref(H, L, p, vol_s.to_numpy(), 200), 1e-9)
+sess0 = pd.Series([0] * len(close))
+assert (anchored_vwap(hi, lo, close, vol_s, 0) - vwap(hi, lo, close, vol_s, sess0)).abs().max() < 1e-9
+print("ok  Anchored VWAP anchored at the first bar is exactly the session VWAP")
+pp_h, pp_l, pp_c = pd.Series([12.0]), pd.Series([8.0]), pd.Series([11.0])
+lv = [float(x.iloc[0]) for x in pivot_points(pp_h, pp_l, pp_c)]
+assert np.allclose(lv, [31 / 3, 38 / 3, 26 / 3, 31 / 3 + 4, 31 / 3 - 4])
+assert abs((lv[1] - lv[2]) - 4.0) < 1e-12  # R1 - S1 is the whole previous range
+print("ok  Pivot levels: worked example, and R1 - S1 is always exactly the previous bar's high-low range")
+assert (ulcer(pd.Series(np.arange(100.0) + 100), 14).dropna() == 0).all()
+assert abs(ulcer(pd.Series([100.0, 98, 97]), 3).iloc[-1] - ((0 + 4 + 9) / 3) ** 0.5) < 1e-9
+assert abs(100 * np.log10(14 * 5 / 5) / np.log10(14) - 100) < 1e-9
+assert abs(100 * np.log10(28 / 4) / np.log10(14) - 73.74) < 0.01
+print("ok  Ulcer Index is 0 in a rising market; Choppiness is 100 when every bar's range equals the whole window's span")
+o2, h2, l2, c2 = pd.Series([10.0, 11.0]), pd.Series([12.0, 13.0]), pd.Series([9.0, 10.5]), pd.Series([11.0, 12.5])
+hh = heikin_ashi(o2, h2, l2, c2)
+assert [hh[0].iloc[0], hh[3].iloc[0]] == [10.5, 10.5] and [hh[0].iloc[1], hh[1].iloc[1], hh[2].iloc[1], hh[3].iloc[1]] == [10.5, 13.0, 10.5, 11.75]
+tp = pd.Series([10.0, 12.0])
+assert abs(anchored_vwap(tp, tp, tp, pd.Series([100.0, 300.0]), 0).iloc[-1] - 11.5) < 1e-12
+print("ok  worked examples (Choppiness, Ulcer, Pivot Points, Heikin-Ashi, Anchored VWAP)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect

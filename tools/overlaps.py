@@ -81,6 +81,8 @@ MEASURES = {
     "hv-sd-pct": lambda h, l, c, v: (ind.historical_volatility(c), ind.std_dev(c) / c),
     "sd-atr": lambda h, l, c, v: (ind.std_dev(c), ind.atr(h, l, c)),
     "cv-atr-level": lambda h, l, c, v: (ind.chaikin_volatility(h, l), ind.atr(h, l, c)),
+    "chop-adx": lambda h, l, c, v: (ind.choppiness(h, l, c), ind.adx(h, l, c)[0]),
+    "ulcer-hv": lambda h, l, c, v: (ind.ulcer(c), ind.historical_volatility(c)),
     "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
     "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
@@ -114,6 +116,10 @@ def _id_stddev_bollinger(h, l, c, v):
     return ((up - lo) - 4 * ind.std_dev(c, 20)).abs().max()
 
 
+def _id_avwap_vwap(h, l, c, v):
+    return (ind.anchored_vwap(h, l, c, v, 0) - ind.vwap(h, l, c, v, pd.Series(0, index=c.index))).abs().max()
+
+
 def _id_aroon_donchian(h, l, c, v):
     up, down, _ = ind.aroon(h, l, 25)
     valid = up.notna()
@@ -136,6 +142,7 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "avwap-vwap": _id_avwap_vwap,
     "stddev-bollinger": _id_stddev_bollinger,
     "rmi-rsi-momentum-1": _id_rmi_rsi,
 }
@@ -180,6 +187,8 @@ PAIRS = {
     ("historical-volatility", "standard-deviation"): dict(strength="partial", identity=None, corr="hv-sd-pct"),
     ("chaikin-volatility", "average-true-range"): dict(strength="partial", identity=None, corr="cv-atr-roc"),
     ("relative-volatility-index", "relative-strength-index"): dict(strength="partial", identity=None, corr="rvi-rsi"),
+    ("anchored-vwap", "volume-weighted-average-price"): dict(strength="identical", identity="avwap-vwap", corr=None),
+    ("ulcer-index", "historical-volatility"): dict(strength="partial", identity=None, corr="ulcer-hv"),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -228,6 +237,8 @@ QUOTES = [
     ("chaikin-volatility", 2, "cv-atr-roc"),
     ("chaikin-volatility", 2, "cv-atr-level"),
     ("relative-volatility-index", 2, "rvi-rsi"),
+    ("choppiness-index", 2, "chop-adx"),
+    ("ulcer-index", 2, "ulcer-hv"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),

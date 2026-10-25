@@ -412,3 +412,40 @@ def mass_index(high, low, n=9, total=25):
     spread = (high - low).ewm(span=n, adjust=False).mean()
     ratio = spread / spread.ewm(span=n, adjust=False).mean()
     return ratio.rolling(total).sum()
+
+
+def choppiness(high, low, close, n=14):
+    prev_close = close.shift()
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    span = high.rolling(n).max() - low.rolling(n).min()
+    return 100 * np.log10(tr.rolling(n).sum() / span) / np.log10(n)
+
+
+def ulcer(close, n=14):
+    drawdown = 100 * (close / close.rolling(n, min_periods=1).max() - 1)
+    return np.sqrt((drawdown ** 2).rolling(n).mean())
+
+
+def pivot_points(high, low, close):
+    """Levels for the NEXT period, from one period's high, low and close."""
+    pivot = (high + low + close) / 3
+    return pivot, 2 * pivot - low, 2 * pivot - high, pivot + (high - low), pivot - (high - low)
+
+
+def heikin_ashi(open_, high, low, close):
+    ha_close = (open_ + high + low + close) / 4
+    ha_open = ha_close.copy()
+    ha_open.iloc[0] = (open_.iloc[0] + close.iloc[0]) / 2
+    for i in range(1, len(close)):
+        ha_open.iloc[i] = (ha_open.iloc[i - 1] + ha_close.iloc[i - 1]) / 2
+    ha_high = pd.concat([high, ha_open, ha_close], axis=1).max(axis=1)
+    ha_low = pd.concat([low, ha_open, ha_close], axis=1).min(axis=1)
+    return ha_open, ha_high, ha_low, ha_close
+
+
+def anchored_vwap(high, low, close, volume, anchor):
+    typical = ((high + low + close) / 3).iloc[anchor:]
+    vol = volume.iloc[anchor:]
+    out = pd.Series(np.nan, index=close.index)
+    out.iloc[anchor:] = (typical * vol).cumsum() / vol.cumsum()
+    return out

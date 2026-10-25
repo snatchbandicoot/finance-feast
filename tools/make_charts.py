@@ -806,6 +806,102 @@ def chart_mass(t):
     return fig
 
 
+def chart_choppiness(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Choppiness Index (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (38.2, 61.8):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.choppiness(H, L, C, 14), 30), color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 38.2, 50, 61.8, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Choppiness Index, with the 38.2 and 61.8 lines")
+    return fig
+
+
+def chart_ulcer(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Ulcer Index (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.ulcer(C, 14), 30)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, x.max() * 1.12)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Ulcer Index, in percent drawdown")
+    return fig
+
+
+def _candles(ax, t, o, h, l, c, lo, hi):
+    idx = list(range(lo, hi + 1))
+    for i in idx:
+        up = c.iloc[i] >= o.iloc[i]
+        col = t["teal"] if up else t["pink"]
+        ax.vlines(i, l.iloc[i], h.iloc[i], color=col, linewidth=0.9, zorder=3)
+        ax.bar(i, max(abs(c.iloc[i] - o.iloc[i]), 0.02), bottom=min(o.iloc[i], c.iloc[i]), width=0.7, color=col, linewidth=0, zorder=4)
+
+
+def chart_heikin(t):
+    O = daily["open"]
+    lo, hi = 190, 290
+    ho, hh, hl, hc = ind.heikin_ashi(O, H, L, C)
+    fig, (ax, ax2) = new_fig(t, [1, 1], 6.4)
+    heading(fig, t, "Ordinary and Heikin-Ashi candles, bars 190 to 290 of synthetic daily data")
+    _candles(ax, t, O, H, L, C, lo, hi)
+    _candles(ax2, t, ho, hh, hl, hc, lo, hi)
+    lim = (min(L.loc[lo:hi].min(), hl.loc[lo:hi].min()) - 1, max(H.loc[lo:hi].max(), hh.loc[lo:hi].max()) + 1)
+    for a_ in (ax, ax2):
+        a_.set_ylim(*lim); shade_regimes(a_, t, lo, hi, labels=False)
+    ax.set_xlim(lo - 1, hi + 1); hide_x(ax)
+    x_axis(ax2, t, lo, hi)
+    panel_label(ax, t, "Ordinary candles (teal: close at or above open, pink: below)")
+    panel_label(ax2, t, "Heikin-Ashi candles of the same bars")
+    return fig
+
+
+def chart_pivots(t):
+    fig, (ax,) = new_fig(t, [1], 4.6, top=0.85)
+    heading(fig, t, "Pivot Points from the previous session, on synthetic 5-minute data")
+    s = intraday["session"]
+    ax.plot(intraday["close"], color=t["ink2"], linewidth=PRICE, label="Close", zorder=3)
+    colors = {"P": t["pink"], "R1": t["teal"], "R2": t["teal"], "S1": t["blue"], "S2": t["blue"]}
+    for sess in (1, 2):
+        prev = intraday[s == sess - 1]
+        lv = ind.pivot_points(prev["high"].max(), prev["low"].min(), prev["close"].iloc[-1])
+        idx = intraday.index[s == sess]
+        for name, y in zip(["P", "R1", "S1", "R2", "S2"], lv):
+            ax.hlines(y, idx[0], idx[-1], color=colors[name], linewidth=1.5 if name == "P" else 1.1,
+                      linestyle="-" if name in ("P", "R1", "S1") else (0, (4, 3)), zorder=4)
+            if sess == 1:
+                ax.text(idx[0] + 2, y, name, color=colors[name], fontsize=8, va="bottom", ha="left")
+        ax.axvline(idx[0] - 0.5, color=t["muted"], linewidth=0.8, zorder=1)
+    ax.set_xlim(-0.5, len(intraday) - 0.5)
+    levels = []
+    for sess in (1, 2):
+        prev = intraday[s == sess - 1]
+        levels += list(ind.pivot_points(prev["high"].max(), prev["low"].min(), prev["close"].iloc[-1]))
+    lo_, hi_ = min(intraday["low"].min(), min(levels)), max(intraday["high"].max(), max(levels))
+    pad = (hi_ - lo_) * 0.08
+    ax.set_ylim(lo_ - pad, hi_ + pad)
+    ax.set_xticks([0, 78, 156]); ax.set_xlabel("Bar (synthetic 5-minute data)", color=t["muted"], fontsize=8.5, labelpad=6)
+    from matplotlib.lines import Line2D
+    legend(ax, t, [Line2D([], [], color=t["ink2"], linewidth=PRICE), Line2D([], [], color=t["pink"], linewidth=1.5),
+                   Line2D([], [], color=t["teal"], linewidth=1.1), Line2D([], [], color=t["blue"], linewidth=1.1)],
+           ["Close", "Pivot", "Resistance R1, R2", "Support S1, S2"], left=True)
+    return fig
+
+
+def chart_avwap(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "Anchored VWAP from two anchors, on synthetic daily data")
+    price_panel(ax, t, 170)
+    a1 = ind.anchored_vwap(H, L, C, V, 200)
+    a2 = ind.anchored_vwap(H, L, C, V, 249)
+    ax.plot(a1, color=t["pink"], linewidth=LINE, label="Anchored at bar 200 (selloff starts)", zorder=4)
+    ax.plot(a2, color=t["teal"], linewidth=LINE, label="Anchored at bar 249 (price low)", zorder=4)
+    for a_, c_ in ((200, t["pink"]), (249, t["teal"])):
+        ax.plot([a_], [C.iloc[a_]], marker="o", markersize=5, color=c_, zorder=5)
+    h, l = ax.get_legend_handles_labels(); legend(ax, t, h, l, left=True)
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -856,6 +952,11 @@ CHARTS = {
     "chaikin-volatility": chart_chaikin_vol,
     "relative-volatility-index": chart_rvi,
     "mass-index": chart_mass,
+    "choppiness-index": chart_choppiness,
+    "ulcer-index": chart_ulcer,
+    "heikin-ashi": chart_heikin,
+    "pivot-points": chart_pivots,
+    "anchored-vwap": chart_avwap,
 }
 
 if __name__ == "__main__":
