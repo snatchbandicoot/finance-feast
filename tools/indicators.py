@@ -588,3 +588,50 @@ def double_smoothed_stochastic(high, low, close, n=13, smooth=8):
     low2, high2 = first.rolling(n).min(), first.rolling(n).max()
     second = 100 * (first - low2) / (high2 - low2).replace(0, np.nan)
     return second.ewm(span=smooth, adjust=False).mean()
+
+
+def triangular_ma(close, n=20):
+    return close.rolling(n // 2 + 1).mean().rolling((n + 1) // 2).mean()
+
+
+def variable_ma(close, n=21, cmo_n=9):
+    change = close.diff()
+    up = change.clip(lower=0).rolling(cmo_n).sum()
+    down = (-change).clip(lower=0).rolling(cmo_n).sum()
+    strength = ((up - down) / (up + down)).abs()
+    alpha = 2 / (n + 1)
+    out, prev = [], np.nan
+    for price, k in zip(close, strength):
+        if np.isnan(k):
+            out.append(np.nan)
+            continue
+        prev = price if np.isnan(prev) else alpha * k * price + (1 - alpha * k) * prev
+        out.append(prev)
+    return pd.Series(out, index=close.index)
+
+
+def displaced_ema(close, n=20, shift=5):
+    return close.ewm(span=n, adjust=False).mean().shift(shift)
+
+
+def ema_ribbon(close, lengths=(10, 20, 30, 40, 50, 60, 70, 80)):
+    lines = {n: close.ewm(span=n, adjust=False).mean() for n in lengths}
+    ribbon = pd.DataFrame(lines)
+    width = ribbon[min(lengths)] - ribbon[max(lengths)]
+    return ribbon, width
+
+
+def starc_bands(high, low, close, n=6, atr_n=15, k=2):
+    prev_close = close.shift()
+    true_range = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    atr = true_range.rolling(atr_n).mean()
+    middle = close.rolling(n).mean()
+    return middle, middle + k * atr, middle - k * atr
+
+
+def projection_bands(high, low, close, n=14):
+    x = np.arange(n)
+    slope = close.rolling(n).apply(lambda w: np.polyfit(x, w, 1)[0], raw=True)
+    upper = pd.concat([high.shift(i) + slope * i for i in range(n)], axis=1).max(axis=1, skipna=False)
+    lower = pd.concat([low.shift(i) + slope * i for i in range(n)], axis=1).min(axis=1, skipna=False)
+    return upper, lower, 100 * (close - lower) / (upper - lower)

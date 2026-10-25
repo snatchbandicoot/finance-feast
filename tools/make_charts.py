@@ -1130,6 +1130,72 @@ def chart_dss(t):
     return fig
 
 
+def chart_tma(t):
+    return _ma_versus(t, "Triangular MA versus SMA, 20 bars", ind.triangular_ma(C, 20), "Triangular MA 20", ind.sma(C, 20), "SMA 20")
+
+
+def chart_vidya(t):
+    return _ma_versus(t, "Variable MA versus EMA 21", ind.variable_ma(C), "Variable MA (21, 9)", ind.ema(C, 21), "EMA 21")
+
+
+def chart_displaced(t):
+    return _ma_versus(t, "Displaced EMA versus plain EMA", ind.displaced_ema(C, 20, 5), "EMA 20 displaced 5 bars", ind.ema(C, 20), "EMA 20")
+
+
+def chart_ribbon(t):
+    fig, (ax,) = new_fig(t, [1], 4.6, top=0.85)
+    heading(fig, t, "Moving Average Ribbon: eight EMAs from 10 to 80 bars on synthetic daily data")
+    price_panel(ax, t)
+    ribbon, width = ind.ema_ribbon(C)
+    cols = list(ribbon.columns)
+    for i, n in enumerate(cols):
+        mix = i / (len(cols) - 1)
+        ax.plot(ribbon[n], color=t["pink"] if i < len(cols) // 2 else t["teal"], linewidth=1.5 if i in (0, len(cols) - 1) else 0.9,
+                alpha=1.0 if i in (0, len(cols) - 1) else 0.55, zorder=4)
+    seg = pd.concat([C, ribbon[cols[0]], ribbon[cols[-1]]]); pad = (seg.max() - seg.min()) * 0.08
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    from matplotlib.lines import Line2D
+    h, l = ax.get_legend_handles_labels()
+    legend(ax, t, [h[0], Line2D([], [], color=t["pink"], linewidth=1.5), Line2D([], [], color=t["teal"], linewidth=1.5)],
+           [l[0], "Faster EMAs (10 to 40)", "Slower EMAs (50 to 80)"], left=True)
+    return fig
+
+
+def chart_starc(t):
+    fig, (ax,) = new_fig(t, [1], 4.4, top=0.85)
+    heading(fig, t, "STARC Bands (6, 15, 2) on synthetic daily data")
+    price_panel(ax, t)
+    m, u, lo_ = ind.starc_bands(H, L, C)
+    ax.fill_between(C.index, lo_, u, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(u, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(lo_, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(m, color=t["pink"], linewidth=LINE, label="6-bar SMA", zorder=4)
+    seg = pd.concat([C, u, lo_]); pad = (seg.max() - seg.min()) * 0.06
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    h, l = ax.get_legend_handles_labels()
+    from matplotlib.lines import Line2D
+    legend(ax, t, [h[0], h[1], Patch(facecolor=t["pink"], alpha=0.25, linewidth=0)], [l[0], l[1], "6-bar SMA plus and minus 2 ATR (15)"], left=True)
+    return fig
+
+
+def chart_projection(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Projection Bands and Projection Oscillator (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    pu, pl, po = ind.projection_bands(H, L, C, 14)
+    ax.fill_between(C.index, pl, pu, color=t["pink"], alpha=0.10, linewidth=0, zorder=2)
+    ax.plot(pu, color=t["pink"], linewidth=1.0, zorder=4)
+    ax.plot(pl, color=t["pink"], linewidth=1.0, zorder=4)
+    seg = pd.concat([C, pu, pl]); pad = (seg.max() - seg.min()) * 0.06
+    ax.set_ylim(seg.min() - pad, seg.max() + pad * 3.2)
+    for y in (20, 80):
+        hline(ax2, t, y)
+    ax2.plot(warm(po, 30), color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 20, 50, 80, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Projection Oscillator: where the close sits between the bands, with the 20 and 80 lines")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -1203,6 +1269,12 @@ CHARTS = {
     "schaff-trend-cycle": chart_stc,
     "woodies-cci": chart_woodie,
     "double-smoothed-stochastic": chart_dss,
+    "triangular-moving-average": chart_tma,
+    "variable-moving-average": chart_vidya,
+    "displaced-ema": chart_displaced,
+    "moving-average-ribbon": chart_ribbon,
+    "starc-bands": chart_starc,
+    "projection-bands": chart_projection,
 }
 
 if __name__ == "__main__":

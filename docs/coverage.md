@@ -6,10 +6,10 @@ not guessed at.
 
 | Group | Names | What it means |
 |---|---|---|
-| Covered by a page | 72 | One study page here (65 pages). Several names can share a page. |
-| Part of a covered page | 17 | Shown on the page of the study it belongs to (for example +DI and -DI on the ADX page). |
+| Covered by a page | 81 | One study page here (71 pages). Several names can share a page. |
+| Part of a covered page | 18 | Shown on the page of the study it belongs to (for example +DI and -DI on the ADX page). |
 | Wrappers around a covered study | 25 | The same study with an alert, a crossover, a filter or another timeframe. No page needed. |
-| Could get a page | 165 | Standard studies computable from one price and volume series. |
+| Could get a page | 155 | Standard studies computable from one price and volume series. |
 | Needs data this site does not have | 48 | Breadth, other symbols, options, your account, open interest, calendars. |
 | Platform-specific or obscure | 45 | Display items, and studies tied to one author or vendor. |
 | Not sure what these are | 16 | Need the owner's input. |
@@ -33,6 +33,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Commodity Channel Index](../src/content/studies/commodity-channel-index.md): CCI
 - [Detrended Price Oscillator](../src/content/studies/detrended-price-oscillator.md): DetrendedPriceOsc
 - [Disparity Index](../src/content/studies/disparity-index.md): DisparityIndex
+- [Displaced EMA](../src/content/studies/displaced-ema.md): DMA, DisplacedEMA
 - [Donchian Channels](../src/content/studies/donchian-channels.md): PriceChannel
 - [Double Exponential Moving Average](../src/content/studies/double-exponential-moving-average.md): DEMA
 - [Double Smoothed Stochastic](../src/content/studies/double-smoothed-stochastic.md): DoubleSmoothedStochastic
@@ -53,6 +54,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Money Flow Index](../src/content/studies/money-flow-index.md): MoneyFlowIndex
 - [Moving Average Convergence Divergence](../src/content/studies/macd.md): MACD
 - [Moving Average Envelope](../src/content/studies/moving-average-envelope.md): MovAvgEnvelope
+- [Moving Average Ribbon](../src/content/studies/moving-average-ribbon.md): MovAvgExpRibbon, RainbowAverage, RibbonStudy
 - [Negative Volume Index](../src/content/studies/negative-volume-index.md): NegativeVolumeIndex
 - [On-Balance Volume](../src/content/studies/on-balance-volume.md): OnBalanceVolume
 - [Parabolic SAR](../src/content/studies/parabolic-sar.md): ParabolicSAR
@@ -61,10 +63,12 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Positive Volume Index](../src/content/studies/positive-volume-index.md): PositiveVolumeIndex
 - [Price Volume Trend](../src/content/studies/price-volume-trend.md): PriceAndVolumeTrend
 - [Price Zone Oscillator](../src/content/studies/price-zone-oscillator.md): PriceZoneOscillator
+- [Projection Bands](../src/content/studies/projection-bands.md): ProjectionBands
 - [Rate of Change](../src/content/studies/rate-of-change.md): RateOfChange
 - [Relative Momentum Index](../src/content/studies/relative-momentum-index.md): RelativeMomentumIndex
 - [Relative Strength Index](../src/content/studies/relative-strength-index.md): RSI
 - [Relative Volatility Index](../src/content/studies/relative-volatility-index.md): RelativeVolatilityIndex
+- [STARC Bands](../src/content/studies/starc-bands.md): STARCBands
 - [Schaff Trend Cycle](../src/content/studies/schaff-trend-cycle.md): SchaffTrendCycle
 - [Simple Moving Average](../src/content/studies/simple-moving-average.md): SimpleMovingAvg
 - [Standard Deviation](../src/content/studies/standard-deviation.md): StandardDeviation
@@ -72,10 +76,12 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Stochastic Oscillator](../src/content/studies/stochastic-oscillator.md): StochasticFast, StochasticFull, StochasticSlow
 - [Stochastic RSI](../src/content/studies/stochastic-rsi.md): StochRSI
 - [TRIX](../src/content/studies/trix.md): TRIX
+- [Triangular Moving Average](../src/content/studies/triangular-moving-average.md): MovAvgTriangular
 - [Triple Exponential Moving Average](../src/content/studies/triple-exponential-moving-average.md): TEMA
 - [True Strength Index](../src/content/studies/true-strength-index.md): TrueStrengthIndex
 - [Ulcer Index](../src/content/studies/ulcer-index.md): UlcerIndex
 - [Ultimate Oscillator](../src/content/studies/ultimate-oscillator.md): UltimateOscillator
+- [Variable Moving Average](../src/content/studies/variable-moving-average.md): VariableMA
 - [Volume Oscillator](../src/content/studies/volume-oscillator.md): VolumeOsc
 - [Volume Profile](../src/content/studies/volume-profile.md): VolumeProfile
 - [Volume Weighted Average Price](../src/content/studies/volume-weighted-average-price.md): VWAP
@@ -93,6 +99,7 @@ Pages on this site that are **not** in the library list: [Choppiness Index](../s
 - [Linear Regression](../src/content/studies/linear-regression.md): LinearRegrIndicator, LinearRegressionSlope, TimeSeriesForecast
 - [Momentum](../src/content/studies/momentum.md): PercentChg
 - [Moving Average Convergence Divergence](../src/content/studies/macd.md): MACDHistogram, MACDTwoLines, MACDWithPrices
+- [Projection Bands](../src/content/studies/projection-bands.md): ProjectionOscillator
 
 ## Wrappers around a covered study
 
@@ -121,9 +128,9 @@ Grouped by theme, which is also a sensible order for new batches.
 
 DemandIndex, IntradayMomentumIndex, StochasticDistanceOsc, StochasticFullDiff, StochasticMACD, ElliotOscillator, AccelerationDecelerationOsc, CCIAverage, ErgodicOsc, DynamicMomentumIndex, SlowRSI, RocketRSI, ForecastOscillator, Impulse, GapMomentum, RelativeRangeIndex, SentimentZoneOscillator, Inertia, Stiffness, UniversalOscillator, PolychromMtm, ElegantOscillator
 
-### Moving averages and bands (28)
+### Moving averages and bands (18)
 
-MovAvgTriangular, VariableMA, DisplacedEMA, DMA, ReverseEMA, LinearRegAdjEMA, TrueRangeAdjEMA, DeviationScaledMovAvg, MedianAverage, MiddleHighLowMA, RainbowAverage, MovAvgExpRibbon, RibbonStudy, WildersSmoothing, UndersampledDoubleMovAvg, CongAdaptiveMovingAverage, MovAvgBands, MovAvgBandWidth, ESDBands, ExponentialDeviationBands, RangeBands, STARCBands, AccelerationBands, UltimateBands, UltimateChannels, ProjectionBands, ProjectionOscillator, RateOfChangeWithBands
+ReverseEMA, LinearRegAdjEMA, TrueRangeAdjEMA, DeviationScaledMovAvg, MedianAverage, MiddleHighLowMA, WildersSmoothing, UndersampledDoubleMovAvg, CongAdaptiveMovingAverage, MovAvgBands, MovAvgBandWidth, ESDBands, ExponentialDeviationBands, RangeBands, AccelerationBands, UltimateBands, UltimateChannels, RateOfChangeWithBands
 
 ### Regression and statistics (14)
 

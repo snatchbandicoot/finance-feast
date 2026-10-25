@@ -101,6 +101,13 @@ MEASURES = {
     "dss-stoch": lambda h, l, c, v: (ind.double_smoothed_stochastic(h, l, c), ind.stochastic(h, l, c)[1]),
     "pzo-rsi": lambda h, l, c, v: (ind.price_zone_oscillator(c), ind.rsi(c, 14)),
     "woodie-6-14": lambda h, l, c, v: ind.woodies_cci(h, l, c),
+    "tma-sma-distance": lambda h, l, c, v: (c - ind.triangular_ma(c, 20), c - ind.sma(c, 20)),
+    "vidya-ema-distance": lambda h, l, c, v: (c - ind.variable_ma(c), c - ind.ema(c, 21)),
+    "displaced-ema-distance": lambda h, l, c, v: (c - ind.displaced_ema(c), c - ind.ema(c, 20)),
+    "starc-keltner-width": lambda h, l, c, v: (
+        (lambda m, u, lo: (u - lo) / m)(*ind.starc_bands(h, l, c)),
+        (lambda m, u, lo: (u - lo) / m)(*ind.keltner(h, l, c)),
+    ),
     "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
     "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
@@ -154,6 +161,11 @@ def _id_woodie_cci(h, l, c, v):
     return (ind.woodies_cci(h, l, c, 14, 6)[0] - ind.cci(h, l, c, 14)).abs().max()
 
 
+def _id_ribbon_ema(h, l, c, v):
+    ribbon, _ = ind.ema_ribbon(c)
+    return (ribbon[20] - ind.ema(c, 20)).abs().max()
+
+
 def _id_aroon_donchian(h, l, c, v):
     up, down, _ = ind.aroon(h, l, 25)
     valid = up.notna()
@@ -176,6 +188,7 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "ribbon-ema": _id_ribbon_ema,
     "woodie-cci-14": _id_woodie_cci,
     "volume-oscillator-ppo": _id_vo_ppo,
     "adl-cmf": _id_adl_cmf,
@@ -246,6 +259,11 @@ PAIRS = {
     ("double-smoothed-stochastic", "stochastic-oscillator"): dict(strength="partial", identity=None, corr="dss-stoch"),
     ("price-zone-oscillator", "relative-strength-index"): dict(strength="partial", identity=None, corr="pzo-rsi"),
     ("woodies-cci", "commodity-channel-index"): dict(strength="identical", identity="woodie-cci-14", corr=None),
+    ("triangular-moving-average", "simple-moving-average"): dict(strength="near", identity=None, corr="tma-sma-distance"),
+    ("variable-moving-average", "exponential-moving-average"): dict(strength="partial", identity=None, corr="vidya-ema-distance"),
+    ("displaced-ema", "exponential-moving-average"): dict(strength="near", identity=None, corr="displaced-ema-distance"),
+    ("starc-bands", "keltner-channels"): dict(strength="partial", identity=None, corr="starc-keltner-width"),
+    ("moving-average-ribbon", "exponential-moving-average"): dict(strength="identical", identity="ribbon-ema", corr=None),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -314,7 +332,15 @@ QUOTES = [
     ("schaff-trend-cycle", 2, "stc-macd"),
     ("double-smoothed-stochastic", 2, "dss-stoch"),
     ("price-zone-oscillator", 2, "pzo-rsi"),
+    ("triangular-moving-average", 3, "tma-sma-distance"),
+    ("variable-moving-average", 2, "vidya-ema-distance"),
+    ("displaced-ema", 3, "displaced-ema-distance"),
+    ("starc-bands", 2, "starc-keltner-width"),
     ("guides/overlaps", 2, "adx-aroon"),
+    ("guides/overlaps", 3, "tma-sma-distance"),
+    ("guides/overlaps", 3, "displaced-ema-distance"),
+    ("guides/overlaps", 2, "vidya-ema-distance"),
+    ("guides/overlaps", 2, "starc-keltner-width"),
     ("guides/overlaps", 3, "mom-roc"),
     ("guides/overlaps", 3, "di-ema-distance"),
     ("guides/overlaps", 2, "stc-stoch"),
