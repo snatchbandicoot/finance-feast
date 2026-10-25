@@ -8,7 +8,7 @@ inputs:
   - { name: length, default: 14 }
 verdict: situational
 status: draft
-related: [simple-moving-average, exponential-moving-average]
+related: [simple-moving-average, exponential-moving-average, stochastic-oscillator]
 ---
 
 > **In plain English.** A score from 0 to 100 for how much of the recent price movement was up versus down. Above 50 means gains have been winning, below 50 means losses have. Think of it as a momentum meter, not a buy or sell switch.
@@ -91,7 +91,7 @@ If an RSI on one chart disagrees with another tool's RSI of the same length, the
 
 **Situational.** As a momentum gauge and as context in a range, it earns its place. As a standalone buy/sell trigger, it is weak, and the overbought/oversold reading is the single most misused rule in popular technical analysis.
 
-Its relatives overlap with it substantially. The stochastic oscillator and similar bounded momentum indicators mostly restate the same recent-price-position information, so using several together adds less than it appears to.
+Its relatives overlap with it substantially. The [stochastic oscillator](../stochastic-oscillator/) and similar bounded momentum indicators mostly restate the same recent-price-position information, so using several together adds less than it appears to.
 
 ## Pairs well with / See also
 

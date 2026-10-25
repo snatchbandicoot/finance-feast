@@ -204,3 +204,96 @@ assert max(12 - 10, abs(12 - 13), abs(10 - 13)) == 3
 # ATR position sizing: risk 100, ATR 2, stop at 2 ATR -> 100 / (2 * 2) = 25 shares
 assert 100 / (2 * 2) == 25
 print("ok  worked examples (MACD, Bollinger, ATR)")
+
+
+# =====================================================================================
+# Stochastic Oscillator, VWAP, On-Balance Volume
+# =====================================================================================
+# ---- snippets as shown on the pages -------------------------------------------------
+def stochastic(high, low, close, n=14, smooth_k=3, smooth_d=3):
+    lowest = low.rolling(n).min()
+    highest = high.rolling(n).max()
+    raw_k = 100 * (close - lowest) / (highest - lowest)
+    k = raw_k.rolling(smooth_k).mean()
+    d = k.rolling(smooth_d).mean()
+    return raw_k, k, d
+
+
+def vwap(high, low, close, volume, session):
+    typical = (high + low + close) / 3
+    cum_pv = (typical * volume).groupby(session).cumsum()
+    cum_v = volume.groupby(session).cumsum()
+    return cum_pv / cum_v
+
+
+def obv(close, volume):
+    direction = np.sign(close.diff()).fillna(0)
+    return (direction * volume).cumsum()
+
+
+# ---- independent references ---------------------------------------------------------
+def stochastic_ref(h, l, c, n, sk, sd):
+    N = len(c)
+    raw = [np.nan] * N
+    for i in range(n - 1, N):
+        ll, hh = min(l[i - n + 1 : i + 1]), max(h[i - n + 1 : i + 1])
+        raw[i] = 100 * (c[i] - ll) / (hh - ll)
+    k = [np.nan] * N
+    for i in range(n - 1 + sk - 1, N):
+        k[i] = sum(raw[i - sk + 1 : i + 1]) / sk
+    d = [np.nan] * N
+    for i in range(n - 1 + sk - 1 + sd - 1, N):
+        d[i] = sum(k[i - sd + 1 : i + 1]) / sd
+    return np.array(raw), np.array(k), np.array(d)
+
+
+def vwap_ref(h, l, c, v, session):
+    out, pv, vv, cur = [], 0.0, 0.0, None
+    for i in range(len(c)):
+        if session[i] != cur:
+            cur, pv, vv = session[i], 0.0, 0.0
+        pv += (h[i] + l[i] + c[i]) / 3 * v[i]
+        vv += v[i]
+        out.append(pv / vv)
+    return np.array(out)
+
+
+def obv_ref(c, v):
+    out, total = [0.0], 0.0
+    for i in range(1, len(c)):
+        if c[i] > c[i - 1]:
+            total += v[i]
+        elif c[i] < c[i - 1]:
+            total -= v[i]
+        out.append(total)
+    return np.array(out)
+
+
+vol = pd.Series(rng.integers(100, 1000, len(close)).astype(float))
+V = vol.to_numpy()
+session = pd.Series(np.arange(len(close)) // 78)  # 78 five-minute bars per 6.5 hour session
+S = session.to_numpy()
+
+raw_k, k, d = stochastic(hi, lo, close)
+rr, kr, dr = stochastic_ref(H, L, p, 14, 3, 3)
+check("Stochastic raw %K vs loop", raw_k, rr, 1e-9)
+check("Stochastic slow %K vs loop", k, kr, 1e-9)
+check("Stochastic %D vs loop", d, dr, 1e-9)
+assert raw_k.dropna().between(0, 100).all()
+print("ok  Stochastic stays within 0 to 100")
+
+check("VWAP vs loop (resets each session)", vwap(hi, lo, close, vol, session), vwap_ref(H, L, p, V, S), 1e-9)
+check("OBV vs loop", obv(close, vol), obv_ref(p, V), 1e-9)
+
+# ---- worked examples quoted on the pages --------------------------------------------
+# Stochastic: highest high 20, lowest low 10, close 16 -> 60
+assert abs(100 * (16 - 10) / (20 - 10) - 60.0) < 1e-12
+# Stochastic smoothing example: raw %K of 60, 70, 80 -> slow %K 70
+assert abs((60 + 70 + 80) / 3 - 70.0) < 1e-12
+# VWAP: typical price 10 on volume 100, then 11 on volume 300 -> 10.75 (the simple average would be 10.5)
+assert abs((10 * 100 + 11 * 300) / (100 + 300) - 10.75) < 1e-12 and (10 + 11) / 2 == 10.5
+# OBV
+ex_c = pd.Series([10, 11, 10.5, 10.5, 12], dtype=float)
+ex_v = pd.Series([100, 200, 150, 120, 300], dtype=float)
+assert obv(ex_c, ex_v).tolist() == [0.0, 200.0, 50.0, 50.0, 350.0]
+print("ok  worked examples (Stochastic, VWAP, OBV)")
