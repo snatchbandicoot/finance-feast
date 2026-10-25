@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pandas numpy
+      - run: python tools/verify_studies.py
   build:
     runs-on: ubuntu-latest
     steps:
@@ -16,7 +24,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with: { path: dist }
   deploy:
-    needs: build
+    needs: [build, verify]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions: { pages: write, id-token: write }

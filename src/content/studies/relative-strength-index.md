@@ -53,6 +53,14 @@ This starts the averages at the first change. Wilder's original starts with the 
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/relative-strength-index-dark.svg">
+<img src="../../charts/relative-strength-index-light.svg" alt="Price above, and 14-bar RSI below with lines at 30 and 70" width="840" height="590">
+</picture>
+<figcaption>Synthetic data. The first 30 values are hidden while the averages warm up. In the uptrend RSI spent about a fifth of its bars above 70 (peak 79) while price kept rising. In the range it stayed between about 37 and 73 and touched 70 on only 2% of bars. In the selloff it sat below 30 on about a third of bars, and it bottomed at 14.7, five bars before price did.</figcaption>
+</figure>
+
 - **Above 50 or below 50.** Gains outweigh losses, or the reverse, over the window. This is the plainest and most reliable reading.
 - **The 70 and 30 lines.** Conventionally called overbought and oversold. They mark a *stretched* move, not a turning point. In a strong trend RSI can sit above 70 for a long time while price keeps rising.
 - **Shifted ranges in trends.** Some practitioners (Constance Brown is a commonly cited source) describe RSI tending to stay roughly between 40 and 80 in an uptrend and 20 to 60 in a downtrend. In that view a dip to 40 in an uptrend is a pullback, not a warning. Treat this as a useful rule of thumb that has not been established as a law.

@@ -1,31 +1,15 @@
 """Checks the pandas snippets on each study page against independent loop implementations.
 
 Run: python3 tools/verify_studies.py
-The snippets below are copied verbatim into the study pages. If you change one, change both.
+The functions under test live in tools/indicators.py, and their code is shown on the study pages.
 """
 import numpy as np
 import pandas as pd
 
+from indicators import atr, bollinger, ema, macd, obv, rsi, sma, stochastic, vwap
+
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
-
-
-# ---- snippets as shown on the pages -------------------------------------------------
-def sma(close, n):
-    return close.rolling(n).mean()
-
-
-def ema(close, n):
-    return close.ewm(span=n, adjust=False).mean()
-
-
-def rsi(close, n=14):
-    delta = close.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.ewm(alpha=1 / n, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1 / n, adjust=False).mean()
-    return 100 - 100 / (1 + avg_gain / avg_loss)
 
 
 # ---- independent references: plain loops, no pandas smoothing ------------------------
@@ -101,25 +85,6 @@ print("ok  worked examples")
 # =====================================================================================
 # MACD, Bollinger Bands, ATR
 # =====================================================================================
-# ---- snippets as shown on the pages -------------------------------------------------
-def macd(close, fast=12, slow=26, signal=9):
-    line = close.ewm(span=fast, adjust=False).mean() - close.ewm(span=slow, adjust=False).mean()
-    sig = line.ewm(span=signal, adjust=False).mean()
-    return line, sig, line - sig
-
-
-def bollinger(close, n=20, k=2):
-    mid = close.rolling(n).mean()
-    sd = close.rolling(n).std(ddof=0)
-    return mid, mid + k * sd, mid - k * sd
-
-
-def atr(high, low, close, n=14):
-    prev_close = close.shift()
-    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
-    return tr.ewm(alpha=1 / n, adjust=False).mean()
-
-
 # ---- independent references ---------------------------------------------------------
 def bollinger_ref(p, n, k):
     mid, up, lo = [np.nan] * len(p), [np.nan] * len(p), [np.nan] * len(p)
@@ -209,28 +174,6 @@ print("ok  worked examples (MACD, Bollinger, ATR)")
 # =====================================================================================
 # Stochastic Oscillator, VWAP, On-Balance Volume
 # =====================================================================================
-# ---- snippets as shown on the pages -------------------------------------------------
-def stochastic(high, low, close, n=14, smooth_k=3, smooth_d=3):
-    lowest = low.rolling(n).min()
-    highest = high.rolling(n).max()
-    raw_k = 100 * (close - lowest) / (highest - lowest)
-    k = raw_k.rolling(smooth_k).mean()
-    d = k.rolling(smooth_d).mean()
-    return raw_k, k, d
-
-
-def vwap(high, low, close, volume, session):
-    typical = (high + low + close) / 3
-    cum_pv = (typical * volume).groupby(session).cumsum()
-    cum_v = volume.groupby(session).cumsum()
-    return cum_pv / cum_v
-
-
-def obv(close, volume):
-    direction = np.sign(close.diff()).fillna(0)
-    return (direction * volume).cumsum()
-
-
 # ---- independent references ---------------------------------------------------------
 def stochastic_ref(h, l, c, n, sk, sd):
     N = len(c)
@@ -297,3 +240,43 @@ ex_c = pd.Series([10, 11, 10.5, 10.5, 12], dtype=float)
 ex_v = pd.Series([100, 200, 150, 120, 300], dtype=float)
 assert obv(ex_c, ex_v).tolist() == [0.0, 200.0, 50.0, 50.0, 350.0]
 print("ok  worked examples (Stochastic, VWAP, OBV)")
+
+
+# =====================================================================================
+# Page snippets must be textually identical to the functions that were verified above
+# =====================================================================================
+import inspect
+import pathlib
+import re
+
+import indicators
+
+PAGES = {
+    "simple-moving-average": "sma",
+    "exponential-moving-average": "ema",
+    "relative-strength-index": "rsi",
+    "macd": "macd",
+    "bollinger-bands": "bollinger",
+    "average-true-range": "atr",
+    "stochastic-oscillator": "stochastic",
+    "volume-weighted-average-price": "vwap",
+    "on-balance-volume": "obv",
+}
+studies = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
+for slug, fn in PAGES.items():
+    text = (studies / f"{slug}.md").read_text()
+    blocks = re.findall(r"```python\n(.*?)```", text, re.S)
+    shown = next((b.strip() for b in blocks if b.lstrip().startswith(f"def {fn}(")), None)
+    assert shown is not None, f"{slug}: no python block defining {fn}()"
+    assert shown == inspect.getsource(getattr(indicators, fn)).strip(), f"{slug}: snippet differs from indicators.{fn}"
+print(f"ok  page snippets match indicators.py ({len(PAGES)} pages)")
+
+
+# every chart a page references must exist, in both light and dark
+charts = pathlib.Path(__file__).resolve().parent.parent / "public" / "charts"
+for slug in PAGES:
+    text = (studies / f"{slug}.md").read_text()
+    assert f"charts/{slug}-light.svg" in text and f"charts/{slug}-dark.svg" in text, f"{slug}: chart not embedded"
+    for mode in ("light", "dark"):
+        assert (charts / f"{slug}-{mode}.svg").is_file(), f"missing chart {slug}-{mode}.svg"
+print(f"ok  every page embeds its light and dark chart, and both files exist ({len(PAGES)} pages)")

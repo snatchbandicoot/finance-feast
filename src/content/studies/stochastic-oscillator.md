@@ -57,6 +57,14 @@ If the highest high equals the lowest low over the window (a completely flat ran
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/stochastic-oscillator-dark.svg">
+<img src="../../charts/stochastic-oscillator-light.svg" alt="Price above, and slow stochastic %K and %D below with lines at 20 and 80" width="840" height="590">
+</picture>
+<figcaption>Synthetic data. In the selloff %K was below 20 on more than half the bars while price kept falling, so a low reading was not a buy signal. In the range it swung between the extremes again and again, which is where the stochastic is most at home.</figcaption>
+</figure>
+
 - **Level.** Above about 80 means closes have been landing near the top of the recent range, and below about 20 means the bottom. These are conventions, like RSI's 70 and 30. They say "near an edge", not "about to reverse".
 - **Crossovers.** When $\%K$ crosses above $\%D$, the close is moving up within its range, and the reverse for a cross below. This is the common trigger, and in a sideways market it fires constantly.
 - **Divergence.** Price makes a new high but the stochastic makes a lower high. As with other oscillators, it is described as a warning and it often fails.

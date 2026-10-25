@@ -60,6 +60,14 @@ Note `ddof=0`. See "Implementation variations" below.
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/bollinger-bands-dark.svg">
+<img src="../../charts/bollinger-bands-light.svg" alt="Price with Bollinger Bands, a 20-bar average and bands two standard deviations away" width="840" height="430">
+</picture>
+<figcaption>Synthetic data. Band width averaged about 6% of price in the range and 13% in the selloff, and it was narrowest (under 3%) around bar 284 during the rebound. The bands widen when volatility rises. They do not say which way price will go.</figcaption>
+</figure>
+
 - **Band width.** Wide bands mean volatility has been high. Narrow bands (a "squeeze") mean it has been low. Volatility tends to come in clusters, so low volatility has historically tended to be followed by higher volatility, and the reverse. A squeeze tells you a bigger move is *more likely* at some point. It does not tell you which direction.
 - **Price at a band.** The price is unusually far from its recent average. In a range, that often precedes a move back toward the middle. In a trend, price can stay near one band for many bars ("walking the band"), and each touch is then a sign of strength.
 - **%B.** The same information as band position, as a number. Above 1 means price closed above the upper band, below 0 means below the lower band.

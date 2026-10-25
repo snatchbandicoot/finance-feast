@@ -52,6 +52,14 @@ def ema(close, n):
 
 ## How to read it
 
+<figure class="chart">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="../../charts/exponential-moving-average-dark.svg">
+<img src="../../charts/exponential-moving-average-light.svg" alt="Price with a 20-bar exponential and a 20-bar simple moving average through a selloff and rebound" width="840" height="430">
+</picture>
+<figcaption>Synthetic data, zoomed to the end of the range, the selloff and the rebound. The EMA (blue) fell ahead of the SMA (orange) in the selloff, and on the rebound it bottomed higher (93.7 against 91.1) because it weighs the recent recovery more heavily. In the 100-bar range it crossed price 18 times to the SMA's 12: quicker, and also choppier.</figcaption>
+</figure>
+
 Read it the same way as a simple average: slope shows direction, price above or below the line shows where price sits relative to its recent weighted average, and a short line crossing a long one is a crossover.
 
 The difference is timing. Because recent bars count more, the EMA changes direction earlier, and it stays closer to price after a sharp move.
