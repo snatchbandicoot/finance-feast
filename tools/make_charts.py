@@ -437,6 +437,78 @@ def chart_ichimoku(t):
     return fig
 
 
+def chart_awesome(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Awesome Oscillator (5, 34) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    a = ind.awesome(H, L, 5, 34)
+    rising = a.diff() >= 0
+    hline(ax2, t, 0)
+    ax2.bar(a.index[rising], a[rising], width=0.8, color=t["pink"], linewidth=0, label="Higher than the previous bar", zorder=3)
+    ax2.bar(a.index[~rising], a[~rising], width=0.8, color=t["teal"], linewidth=0, label="Lower than the previous bar", zorder=3)
+    lim = a.abs().max() * 1.08
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Awesome Oscillator, in price units")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_trix(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "TRIX (15) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.trix(C, 15), 60)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "TRIX (15), percent change of the triple-smoothed average per bar")
+    return fig
+
+
+def chart_ultimate(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Ultimate Oscillator (7, 14, 28) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    u = ind.ultimate(H, L, C, 7, 14, 28)
+    for y in (30, 70):
+        hline(ax2, t, y)
+    ax2.plot(u, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Ultimate Oscillator, with the 30 and 70 lines")
+    return fig
+
+
+def chart_cmo(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Chande Momentum Oscillator (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    c = ind.cmo(C, 14)
+    for y in (-50, 50):
+        hline(ax2, t, y)
+    hline(ax2, t, 0, 0.5)
+    ax2.plot(c, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(-100, 100); ax2.set_yticks([-100, -50, 0, 50, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "CMO (14), with the -50 and +50 lines")
+    return fig
+
+
+def chart_ppo(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Percentage Price Oscillator (12, 26, 9) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    line, sig, hist = (warm(x, 40) for x in ind.ppo(C))
+    hline(ax2, t, 0)
+    ax2.bar(hist.index, hist, width=0.8, color=t["ink2"], alpha=0.35, linewidth=0, label="Histogram", zorder=2)
+    ax2.plot(line, color=t["pink"], linewidth=LINE, label="PPO", zorder=4)
+    ax2.plot(sig, color=t["teal"], linewidth=LINE, label="Signal", zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "PPO, signal line and histogram, in percent")
+    h, l = ax2.get_legend_handles_labels()
+    by_label = dict(zip(l, h))
+    legend(ax2, t, [by_label[k] for k in ("PPO", "Signal", "Histogram")], ["PPO", "Signal", "Histogram"])
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -457,6 +529,11 @@ CHARTS = {
     "keltner-channels": chart_keltner,
     "chaikin-money-flow": chart_cmf,
     "ichimoku-cloud": chart_ichimoku,
+    "awesome-oscillator": chart_awesome,
+    "trix": chart_trix,
+    "ultimate-oscillator": chart_ultimate,
+    "chande-momentum-oscillator": chart_cmo,
+    "percentage-price-oscillator": chart_ppo,
 }
 
 if __name__ == "__main__":

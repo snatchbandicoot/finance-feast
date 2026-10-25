@@ -6,8 +6,8 @@ The functions under test live in tools/indicators.py, and their code is shown on
 import numpy as np
 import pandas as pd
 
-from indicators import (aroon, adx, atr, bollinger, cci, cmf, donchian, ema, ichimoku, keltner, macd, obv, psar,
-                        roc, rsi, sma, stochastic, vwap, williams_r)
+from indicators import (aroon, adx, atr, awesome, bollinger, cci, cmf, cmo, donchian, ema, ichimoku, keltner, macd, obv,
+                        ppo, psar, roc, rsi, sma, stochastic, trix, ultimate, vwap, williams_r)
 
 rng = np.random.default_rng(7)
 close = pd.Series(100 + rng.normal(0, 1, 600).cumsum())
@@ -515,6 +515,107 @@ print("ok  worked examples (Aroon, Donchian, Keltner, CMF, Ichimoku)")
 
 
 # =====================================================================================
+# Awesome Oscillator, TRIX, Ultimate Oscillator, CMO, PPO
+# =====================================================================================
+def awesome_ref(h, l, fast, slow):
+    med = [(h[i] + l[i]) / 2 for i in range(len(h))]
+    out = [np.nan] * len(h)
+    for i in range(slow - 1, len(h)):
+        out[i] = sum(med[i - fast + 1 : i + 1]) / fast - sum(med[i - slow + 1 : i + 1]) / slow
+    return np.array(out)
+
+
+def trix_ref(p, n):
+    t = ema_ref(ema_ref(ema_ref(p, n), n), n)
+    return np.array([np.nan] + [100 * (t[i] / t[i - 1] - 1) for i in range(1, len(t))])
+
+
+def ultimate_ref(h, l, c, s_, m_, l_):
+    bp, tr = [], []
+    for i in range(len(c)):
+        lo_ref = l[i] if i == 0 else min(l[i], c[i - 1])
+        hi_ref = h[i] if i == 0 else max(h[i], c[i - 1])
+        bp.append(c[i] - lo_ref)
+        tr.append(hi_ref - lo_ref)
+    out = [np.nan] * len(c)
+    for i in range(l_ - 1, len(c)):
+        a = [sum(bp[i - n + 1 : i + 1]) / sum(tr[i - n + 1 : i + 1]) for n in (s_, m_, l_)]
+        out[i] = 100 * (4 * a[0] + 2 * a[1] + a[2]) / 7
+    return np.array(out)
+
+
+def cmo_ref(c, n):
+    out, cutler = [np.nan] * len(c), [np.nan] * len(c)
+    for i in range(n, len(c)):
+        ch = [c[k] - c[k - 1] for k in range(i - n + 1, i + 1)]
+        su, sd = sum(x for x in ch if x > 0), sum(-x for x in ch if x < 0)
+        out[i] = 100 * (su - sd) / (su + sd)
+        cutler[i] = 100 * su / (su + sd)  # Cutler's RSI: plain sums instead of Wilder smoothing
+    return np.array(out), np.array(cutler)
+
+
+def ppo_ref(p, fast, slow, sig):
+    ef, es = ema_ref(p, fast), ema_ref(p, slow)
+    line = 100 * (ef - es) / es
+    s_ = ema_ref(line, sig)
+    return line, s_, line - s_, es
+
+
+ao = awesome(hi, lo, 5, 34)
+check("Awesome Oscillator (5, 34) vs loop", ao, awesome_ref(H, L, 5, 34), 1e-9)
+
+tx = trix(close, 15)
+check("TRIX(15) vs loop (three EMA loops)", tx, trix_ref(p, 15), 1e-9)
+steady = pd.Series(100 * 1.01 ** np.arange(500))  # rises exactly 1% every bar
+assert abs(trix(steady, 15).iloc[-1] - 1.0) < 1e-9
+print("ok  TRIX of a series rising 1% per bar converges to exactly 1.0")
+
+uo = ultimate(hi, lo, close, 7, 14, 28)
+check("Ultimate Oscillator (7, 14, 28) vs loop", uo, ultimate_ref(H, L, p, 7, 14, 28), 1e-9)
+assert uo.dropna().between(0, 100).all()
+print("ok  Ultimate Oscillator stays within 0 to 100")
+
+cm, cutler = cmo_ref(p, 14)
+cmo_s = cmo(close, 14)
+check("CMO(14) vs loop", cmo_s, cm, 1e-9)
+check("CMO == 2 x Cutler RSI - 100", cmo_s, 2 * cutler - 100, 1e-9)
+assert cmo_s.dropna().between(-100, 100).all()
+print("ok  CMO stays within -100 to +100")
+
+ppo_l, ppo_sg, ppo_h = ppo(close, 12, 26, 9)
+pl, ps, ph, slow_ema_ref = ppo_ref(p, 12, 26, 9)
+check("PPO line vs loop", ppo_l, pl, 1e-9)
+check("PPO signal vs loop", ppo_sg, ps, 1e-9)
+check("PPO histogram vs loop", ppo_h, ph, 1e-9)
+macd_line = macd(close)[0]
+check("PPO x slow EMA / 100 == MACD line", ppo_l * slow_ema_ref / 100, macd_line, 1e-9)
+
+# ---- worked examples quoted on the pages --------------------------------------------
+# Awesome: settings (2, 4); medians 9, 11, 13, 12 -> SMA2 = 12.5, SMA4 = 11.25 -> AO = 1.25
+assert awesome(pd.Series([10.0, 12, 14, 13]), pd.Series([8.0, 10, 12, 11]), 2, 4).iloc[-1] == 1.25
+# Ultimate: averages 0.6, 0.5, 0.4 -> 100 x (4 x 0.6 + 2 x 0.5 + 0.4) / 7
+assert abs(100 * (4 * 0.6 + 2 * 0.5 + 0.4) / 7 - 54.285714285714) < 1e-9
+# one bar: previous close 11, high 12, low 10.5, close 11.8 -> buying pressure 1.3 over true range 1.5
+u1 = ultimate(pd.Series([11.5, 12.0]), pd.Series([10.5, 10.5]), pd.Series([11.0, 11.8]), 1, 1, 1)
+assert abs(u1.iloc[-1] - 100 * 1.3 / 1.5) < 1e-9
+# CMO: closes 10, 12, 11, 14, 12 (n = 4): gains 2 + 3 = 5, losses 1 + 2 = 3 -> CMO = 25, Cutler RSI = 62.5
+c5 = pd.Series([10.0, 12, 11, 14, 12])
+assert cmo(c5, 4).iloc[-1] == 25.0 and 100 * 5 / (5 + 3) == 62.5 and 2 * 62.5 - 100 == 25.0
+# PPO: EMA12 105.2, EMA26 104.5 (the MACD page's example) -> PPO = 100 x 0.7 / 104.5
+assert abs(100 * (105.2 - 104.5) / 104.5 - 0.669856459) < 1e-8
+# Scale: multiply every price by 3. MACD and the Awesome Oscillator triple (they are in price units); PPO, TRIX,
+# the Ultimate Oscillator and CMO do not change (they are percentages or ratios).
+t3 = lambda x: x * 3
+check("MACD line triples when prices triple", macd(t3(close))[0], 3 * macd(close)[0], 1e-9)
+check("Awesome Oscillator triples when prices triple", awesome(t3(hi), t3(lo), 5, 34), 3 * awesome(hi, lo, 5, 34), 1e-9)
+check("PPO unchanged when prices triple", ppo(t3(close))[0], ppo(close)[0], 1e-9)
+check("TRIX unchanged when prices triple", trix(t3(close), 15), trix(close, 15), 1e-9)
+check("Ultimate Oscillator unchanged when prices triple", ultimate(t3(hi), t3(lo), t3(close)), ultimate(hi, lo, close), 1e-9)
+check("CMO unchanged when prices triple", cmo(t3(close), 14), cmo(close, 14), 1e-9)
+print("ok  worked examples (Awesome, TRIX, Ultimate, CMO, PPO)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
@@ -543,6 +644,11 @@ PAGES = {
     "keltner-channels": "keltner",
     "chaikin-money-flow": "cmf",
     "ichimoku-cloud": "ichimoku",
+    "awesome-oscillator": "awesome",
+    "trix": "trix",
+    "ultimate-oscillator": "ultimate",
+    "chande-momentum-oscillator": "cmo",
+    "percentage-price-oscillator": "ppo",
 }
 studies = pathlib.Path(__file__).resolve().parent.parent / "src" / "content" / "studies"
 for slug, fn in PAGES.items():
