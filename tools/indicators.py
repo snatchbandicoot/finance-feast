@@ -449,3 +449,32 @@ def anchored_vwap(high, low, close, volume, anchor):
     out = pd.Series(np.nan, index=close.index)
     out.iloc[anchor:] = (typical * vol).cumsum() / vol.cumsum()
     return out
+
+
+def accumulation_distribution(high, low, close, volume):
+    position = ((close - low) - (high - close)) / (high - low).replace(0, np.nan)
+    return (position.fillna(0) * volume).cumsum()
+
+
+def chaikin_oscillator(high, low, close, volume, fast=3, slow=10):
+    line = accumulation_distribution(high, low, close, volume)
+    return line.ewm(span=fast, adjust=False).mean() - line.ewm(span=slow, adjust=False).mean()
+
+
+def mfi(high, low, close, volume, n=14):
+    typical = (high + low + close) / 3
+    flow = typical * volume
+    change = typical.diff()
+    positive = flow.where(change > 0, 0.0).rolling(n).sum()
+    negative = flow.where(change < 0, 0.0).rolling(n).sum()
+    return 100 - 100 / (1 + positive / negative)
+
+
+def force_index(close, volume, n=13):
+    return (close.diff() * volume).ewm(span=n, adjust=False).mean()
+
+
+def ease_of_movement(high, low, volume, n=14, scale=1e6):
+    midpoint_move = (high + low) / 2 - (high.shift() + low.shift()) / 2
+    box_ratio = (volume / scale) / (high - low)
+    return (midpoint_move / box_ratio).rolling(n).mean()

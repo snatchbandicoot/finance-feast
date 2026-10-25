@@ -902,6 +902,74 @@ def chart_avwap(t):
     return fig
 
 
+def chart_adl(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Accumulation/Distribution line and On-Balance Volume on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    ad = ind.accumulation_distribution(H, L, C, V) / 1e6
+    ob = ind.obv(C, V) / 1e6
+    ax2.plot(ob, color=t["teal"], linewidth=LINE, label="OBV", zorder=4)
+    ax2.plot(ad, color=t["pink"], linewidth=LINE, label="Accumulation/Distribution", zorder=4)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Both in millions of shares, each starting from zero")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["Accumulation/Distribution"], by["OBV"]], ["Accumulation/Distribution", "OBV"])
+    return fig
+
+
+def chart_chaikin_osc(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Chaikin Oscillator (3, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.chaikin_oscillator(H, L, C, V), 30) / 1e6
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Chaikin Oscillator, in millions of shares")
+    return fig
+
+
+def chart_mfi(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Money Flow Index (14) and RSI (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    for y in (20, 80):
+        hline(ax2, t, y)
+    ax2.plot(warm(ind.rsi(C, 14), 30), color=t["teal"], linewidth=LINE, label="RSI 14", zorder=4)
+    ax2.plot(ind.mfi(H, L, C, V, 14), color=t["pink"], linewidth=LINE, label="MFI 14", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 20, 50, 80, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "MFI and RSI, with the 20 and 80 lines")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["MFI 14"], by["RSI 14"]], ["MFI 14", "RSI 14"])
+    return fig
+
+
+def chart_force(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Force Index (13) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.force_index(C, V, 13), 30) / 1e6
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Force Index (13), in millions of price-times-share units")
+    return fig
+
+
+def chart_emv(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Ease of Movement (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.ease_of_movement(H, L, V, 14), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Ease of Movement (14), with volume scaled to millions")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -957,6 +1025,11 @@ CHARTS = {
     "heikin-ashi": chart_heikin,
     "pivot-points": chart_pivots,
     "anchored-vwap": chart_avwap,
+    "accumulation-distribution": chart_adl,
+    "chaikin-oscillator": chart_chaikin_osc,
+    "money-flow-index": chart_mfi,
+    "force-index": chart_force,
+    "ease-of-movement": chart_emv,
 }
 
 if __name__ == "__main__":

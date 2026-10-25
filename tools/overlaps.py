@@ -83,6 +83,12 @@ MEASURES = {
     "cv-atr-level": lambda h, l, c, v: (ind.chaikin_volatility(h, l), ind.atr(h, l, c)),
     "chop-adx": lambda h, l, c, v: (ind.choppiness(h, l, c), ind.adx(h, l, c)[0]),
     "ulcer-hv": lambda h, l, c, v: (ind.ulcer(c), ind.historical_volatility(c)),
+    "adl-obv": lambda h, l, c, v: (ind.accumulation_distribution(h, l, c, v).diff(20), ind.obv(c, v).diff(20)),
+    "co-cmf": lambda h, l, c, v: (ind.chaikin_oscillator(h, l, c, v), ind.cmf(h, l, c, v, 20)),
+    "mfi-rsi": lambda h, l, c, v: (ind.mfi(h, l, c, v), ind.rsi(c, 14)),
+    "force-obv": lambda h, l, c, v: (ind.force_index(c, v), ind.obv(c, v).diff(13)),
+    "force-roc": lambda h, l, c, v: (ind.force_index(c, v), ind.roc(c, 12)),
+    "emv-roc": lambda h, l, c, v: (ind.ease_of_movement(h, l, v), ind.roc(c, 12)),
     "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
     "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
@@ -120,6 +126,14 @@ def _id_avwap_vwap(h, l, c, v):
     return (ind.anchored_vwap(h, l, c, v, 0) - ind.vwap(h, l, c, v, pd.Series(0, index=c.index))).abs().max()
 
 
+def _id_adl_cmf(h, l, c, v):
+    return (ind.accumulation_distribution(h, l, c, v).diff(20) / v.rolling(20).sum() - ind.cmf(h, l, c, v, 20)).abs().max()
+
+
+def _id_co_macd(h, l, c, v):
+    return (ind.chaikin_oscillator(h, l, c, v) - ind.macd(ind.accumulation_distribution(h, l, c, v), 3, 10)[0]).abs().max()
+
+
 def _id_aroon_donchian(h, l, c, v):
     up, down, _ = ind.aroon(h, l, 25)
     valid = up.notna()
@@ -142,6 +156,8 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "adl-cmf": _id_adl_cmf,
+    "chaikin-osc-macd-of-adl": _id_co_macd,
     "avwap-vwap": _id_avwap_vwap,
     "stddev-bollinger": _id_stddev_bollinger,
     "rmi-rsi-momentum-1": _id_rmi_rsi,
@@ -189,6 +205,14 @@ PAIRS = {
     ("relative-volatility-index", "relative-strength-index"): dict(strength="partial", identity=None, corr="rvi-rsi"),
     ("anchored-vwap", "volume-weighted-average-price"): dict(strength="identical", identity="avwap-vwap", corr=None),
     ("ulcer-index", "historical-volatility"): dict(strength="partial", identity=None, corr="ulcer-hv"),
+    ("accumulation-distribution", "on-balance-volume"): dict(strength="partial", identity=None, corr="adl-obv"),
+    ("accumulation-distribution", "chaikin-money-flow"): dict(strength="identical", identity="adl-cmf", corr=None),
+    ("chaikin-oscillator", "macd"): dict(strength="identical", identity="chaikin-osc-macd-of-adl", corr=None),
+    ("chaikin-oscillator", "chaikin-money-flow"): dict(strength="partial", identity=None, corr="co-cmf"),
+    ("money-flow-index", "relative-strength-index"): dict(strength="partial", identity=None, corr="mfi-rsi"),
+    ("force-index", "on-balance-volume"): dict(strength="partial", identity=None, corr="force-obv"),
+    ("force-index", "rate-of-change"): dict(strength="partial", identity=None, corr="force-roc"),
+    ("ease-of-movement", "rate-of-change"): dict(strength="partial", identity=None, corr="emv-roc"),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -239,6 +263,12 @@ QUOTES = [
     ("relative-volatility-index", 2, "rvi-rsi"),
     ("choppiness-index", 2, "chop-adx"),
     ("ulcer-index", 2, "ulcer-hv"),
+    ("accumulation-distribution", 2, "adl-obv"),
+    ("chaikin-oscillator", 2, "co-cmf"),
+    ("money-flow-index", 2, "mfi-rsi"),
+    ("force-index", 2, "force-obv"),
+    ("force-index", 2, "force-roc"),
+    ("ease-of-movement", 2, "emv-roc"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),

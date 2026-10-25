@@ -1190,6 +1190,81 @@ print("ok  worked examples (Choppiness, Ulcer, Pivot Points, Heikin-Ashi, Anchor
 
 
 # =====================================================================================
+# Batch G: Accumulation/Distribution, Chaikin Oscillator, Money Flow Index, Force Index, Ease of Movement
+# =====================================================================================
+from indicators import accumulation_distribution, chaikin_oscillator, ease_of_movement, force_index, mfi
+
+volume = pd.Series(rng.uniform(1.0e6, 2.0e6, len(close)))
+V_ = volume.to_numpy()
+
+
+def adl_ref(h, l, c, v):
+    total, out = 0.0, []
+    for i in range(len(c)):
+        rng_ = h[i] - l[i]
+        total += (0.0 if rng_ == 0 else ((c[i] - l[i]) - (h[i] - c[i])) / rng_) * v[i]
+        out.append(total)
+    return np.array(out)
+
+
+def mfi_ref(h, l, c, v, n):
+    tp = [(h[i] + l[i] + c[i]) / 3 for i in range(len(c))]
+    out = [np.nan] * len(c)
+    for i in range(n, len(c)):
+        pos = sum(tp[j] * v[j] for j in range(i - n + 1, i + 1) if tp[j] > tp[j - 1])
+        neg = sum(tp[j] * v[j] for j in range(i - n + 1, i + 1) if tp[j] < tp[j - 1])
+        out[i] = 100 - 100 / (1 + pos / neg)
+    return np.array(out)
+
+
+def force_ref(c, v, n):
+    a = 2 / (n + 1)
+    out, prev = [np.nan], None
+    for i in range(1, len(c)):
+        raw = (c[i] - c[i - 1]) * v[i]
+        prev = raw if prev is None else a * raw + (1 - a) * prev
+        out.append(prev)
+    return np.array(out)
+
+
+def emv_ref(h, l, v, n, scale):
+    raw = [np.nan] + [(((h[i] + l[i]) / 2 - (h[i - 1] + l[i - 1]) / 2) / ((v[i] / scale) / (h[i] - l[i]))) for i in range(1, len(h))]
+    out = [np.nan] * len(h)
+    for i in range(n, len(h)):
+        out[i] = sum(raw[i - n + 1 : i + 1]) / n
+    return np.array(out)
+
+
+adl = accumulation_distribution(hi, lo, close, volume)
+check("Accumulation/Distribution vs loop", adl, adl_ref(H, L, p, V_), 1e-3)
+ema_adl = lambda n: ema_ref(adl.to_numpy(), n)
+check("Chaikin Oscillator (3, 10) vs loop", chaikin_oscillator(hi, lo, close, volume, 3, 10), ema_adl(3) - ema_adl(10), 1e-3)
+check("Money Flow Index (14) vs loop", mfi(hi, lo, close, volume, 14), mfi_ref(H, L, p, V_, 14), 1e-9)
+check("Force Index (13) vs loop", force_index(close, volume, 13), force_ref(p, V_, 13), 1e-3)
+check("Ease of Movement (14) vs loop", ease_of_movement(hi, lo, volume, 14), emv_ref(H, L, V_, 14, 1e6), 1e-9)
+
+# exact identities quoted on the pages
+assert ((adl.diff(20)) - cmf(hi, lo, close, volume, 20) * volume.rolling(20).sum()).abs().max() < 1e-3
+assert (chaikin_oscillator(hi, lo, close, volume) - macd(adl, 3, 10)[0]).abs().max() < 1e-9
+print("ok  A/D line change over 20 bars = CMF x 20-bar volume; Chaikin Oscillator = the MACD line of the A/D line (3, 10)")
+assert abs(accumulation_distribution(hi, hi - 1, hi, volume).iloc[-1] - volume.sum()) < 1e-3
+assert mfi(pd.Series(np.arange(100.0, 0, -1)), pd.Series(np.arange(100.0, 0, -1)), pd.Series(np.arange(100.0, 0, -1)), volume.iloc[:100], 14).dropna().eq(0).all()
+assert abs(ease_of_movement(hi, lo, volume * 2, 14).iloc[-1] - ease_of_movement(hi, lo, volume, 14).iloc[-1] / 2) < 1e-9
+print("ok  A/D equals cumulative volume when every close is the high; MFI is 0 in an unbroken decline; doubling volume halves Ease of Movement")
+
+# worked examples quoted on the pages
+assert abs(accumulation_distribution(pd.Series([12.0]), pd.Series([8.0]), pd.Series([11.0]), pd.Series([1000.0])).iloc[-1] - 500) < 1e-9
+assert abs(((11 - 8) - (12 - 11)) / (12 - 8) - 0.5) < 1e-12 and 520 - 480 == 40
+tpv = pd.Series([10.0, 11.0, 10.5, 11.5])
+assert abs(mfi(tpv, tpv, tpv, pd.Series([100.0, 200, 100, 300]), 3).iloc[-1] - 100 * 5650 / (5650 + 1050)) < 1e-9
+assert abs(100 * 5650 / 6700 - 84.33) < 0.01
+assert force_index(pd.Series([10.0, 12, 11]), pd.Series([1000.0, 1500, 2000]), 1).iloc[-1] == -2000 and (12 - 10) * 1500 == 3000
+em = ease_of_movement(pd.Series([10.0, 12]), pd.Series([8.0, 9]), pd.Series([1e6, 2e6]), 1)
+assert abs(em.iloc[-1] - 2.25) < 1e-12
+print("ok  worked examples (A/D, Chaikin Oscillator, MFI, Force Index, Ease of Movement)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect
