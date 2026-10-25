@@ -12,7 +12,12 @@ status: draft                           # draft | reviewed
 related: [stochastic-oscillator]        # slugs of other studies
 ---
 
-> **Takeaway.** One or two sentences: what it tells you and whether it is worth using.
+> **In plain English.** Two to four sentences a newcomer can follow. No formulas, no jargon, no
+> undefined terms. Say what it is, what it tells you, and what it does not.
+>
+> **Good for:** the one or two jobs it does well.
+>
+> **Watch out for:** the main way it misleads.
 
 ## What it measures
 

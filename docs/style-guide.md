@@ -19,6 +19,11 @@ platform alone (`platform:` field) or when implementations differ in a way that 
 **Original text.** Write explanations from scratch. Do not copy descriptions from any vendor's
 documentation. Standard formulas are fine.
 
+**Summary first.** Every page opens with the "In plain English" block, followed by "Good for" and
+"Watch out for" lines. A reader who stops there should still come away with the right idea. Write it
+last, after the rest of the page, so it matches what the page actually says. The verdict is shown
+automatically from the `verdict` frontmatter field, so don't repeat it in the summary.
+
 **Sections.** Follow `docs/study-template.md` in order. Drop "Implementation variations" if empty.
 
 **Status.** New pages are `draft`. Only the owner moves a page to `reviewed`, after checking the
