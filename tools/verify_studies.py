@@ -1030,6 +1030,89 @@ print("ok  worked examples (Coppock, Fisher, Elder Ray, Connors RSI)")
 
 
 # =====================================================================================
+# Batch E: Historical Volatility, Standard Deviation, Chaikin Volatility, Relative Volatility Index, Mass Index
+# =====================================================================================
+from indicators import chaikin_volatility, historical_volatility, mass_index, relative_volatility, std_dev
+
+
+def hv_ref(c, n, per_year):
+    out = [np.nan] * len(c)
+    r = [np.nan] + [np.log(c[i] / c[i - 1]) for i in range(1, len(c))]
+    for i in range(n, len(c)):
+        w = r[i - n + 1 : i + 1]
+        m = sum(w) / n
+        out[i] = 100 * (sum((x - m) ** 2 for x in w) / (n - 1)) ** 0.5 * per_year ** 0.5
+    return np.array(out)
+
+
+def std_ref(c, n):
+    out = [np.nan] * len(c)
+    for i in range(n - 1, len(c)):
+        w = c[i - n + 1 : i + 1]
+        m = sum(w) / n
+        out[i] = (sum((x - m) ** 2 for x in w) / n) ** 0.5
+    return np.array(out)
+
+
+def chaikin_vol_ref(h, l, n, k):
+    e = ema_ref(h - l, n)
+    return np.array([np.nan] * k + [100 * (e[i] / e[i - k] - 1) for i in range(k, len(e))])
+
+
+def rvi_ref(c, std_n, n):
+    sd = std_ref(c, std_n)
+    up = dn = None
+    out = [np.nan] * len(c)
+    for i in range(len(c)):
+        if np.isnan(sd[i]):
+            continue  # an average starts at its first available value
+        ch = c[i] - c[i - 1] if i > 0 else np.nan
+        u = sd[i] if ch > 0 else 0.0
+        d = sd[i] if ch < 0 else 0.0
+        if up is None:
+            up, dn = u, d
+        else:
+            up = up * (1 - 1 / n) + u / n
+            dn = dn * (1 - 1 / n) + d / n
+        out[i] = np.nan if up + dn == 0 else 100 * up / (up + dn)
+    return np.array(out)
+
+
+def mass_ref(h, l, n, total):
+    s1 = ema_ref(h - l, n)
+    s2 = ema_ref(s1, n)
+    ratio = s1 / s2
+    return np.array([np.nan] * (total - 1) + [sum(ratio[i - total + 1 : i + 1]) for i in range(total - 1, len(ratio))])
+
+
+check("Historical volatility (20) vs loop", historical_volatility(close, 20, 252), hv_ref(p, 20, 252), 1e-9)
+check("Standard deviation (20) vs loop", std_dev(close, 20), std_ref(p, 20), 1e-9)
+check("Chaikin Volatility (10, 10) vs loop", chaikin_volatility(hi, lo, 10, 10), chaikin_vol_ref(H, L, 10, 10), 1e-9)
+check("Relative Volatility Index (10, 14) vs loop", relative_volatility(close, 10, 14), rvi_ref(p, 10, 14), 1e-8)
+check("Mass Index (9, 25) vs loop", mass_index(hi, lo, 9, 25), mass_ref(H, L, 9, 25), 1e-9)
+
+# properties quoted on the pages
+_, bb_up, bb_dn = bollinger(close, 20, 2)
+assert ((bb_up - bb_dn) - 4 * std_dev(close, 20)).abs().max() < 1e-9
+assert ((std_dev(close * 2, 20)) - 2 * std_dev(close, 20)).abs().max() < 1e-9
+print("ok  Bollinger Band width is exactly 4 standard deviations; doubling prices doubles the standard deviation")
+assert abs(mass_index(pd.Series([3.0] * 100), pd.Series([1.0] * 100)).iloc[-1] - 25) < 1e-9
+print("ok  Mass Index sits at exactly 25 when the daily range never changes")
+assert relative_volatility(close).dropna().between(0, 100).all()
+print("ok  Relative Volatility Index stays in 0..100")
+
+# worked examples quoted on the pages
+assert abs(std_dev(pd.Series([2.0, 4, 4, 4, 5, 5, 7, 9]), 8).iloc[-1] - 2.0) < 1e-12
+assert abs(100 * 0.01 * 252 ** 0.5 - 15.87) < 0.01
+alt = pd.Series(100 * np.exp(np.cumsum([0.0] + [0.01, -0.01] * 20)))
+assert abs(historical_volatility(alt, 20, 252).iloc[-1] - 100 * (20 * 0.01 ** 2 / 19) ** 0.5 * 252 ** 0.5) < 1e-9
+assert abs(chaikin_volatility(pd.Series([2.0, 2, 2, 3]), pd.Series([0.0] * 4), 1, 3).iloc[-1] - 50) < 1e-12
+assert abs(relative_volatility(pd.Series([10.0, 12, 11, 13]), 2, 3).iloc[-1] - 87.5) < 1e-9
+assert abs(100 * 1.2 / (1.2 + 0.8) - 60) < 1e-12
+print("ok  worked examples (HV, Standard Deviation, Chaikin Volatility, RVI, Mass Index)")
+
+
+# =====================================================================================
 # Page snippets must be textually identical to the functions that were verified above
 # =====================================================================================
 import inspect

@@ -382,3 +382,33 @@ def connors_rsi(close, rsi_n=3, streak_n=2, rank_n=100):
     daily = close.pct_change()
     rank = daily.rolling(rank_n + 1).apply(lambda w: 100 * (w[:-1] < w[-1]).mean(), raw=True)
     return (rsi(close, rsi_n) + rsi(streak, streak_n) + rank) / 3
+
+
+def historical_volatility(close, n=20, periods_per_year=252):
+    returns = np.log(close / close.shift())
+    return 100 * returns.rolling(n).std(ddof=1) * np.sqrt(periods_per_year)
+
+
+def std_dev(close, n=20):
+    return close.rolling(n).std(ddof=0)
+
+
+def chaikin_volatility(high, low, n=10, change=10):
+    smoothed = (high - low).ewm(span=n, adjust=False).mean()
+    return 100 * (smoothed / smoothed.shift(change) - 1)
+
+
+def relative_volatility(close, std_n=10, n=14):
+    sd = close.rolling(std_n).std(ddof=0)
+    change = close.diff()
+    up = sd.where(change > 0, 0.0).where(sd.notna())
+    down = sd.where(change < 0, 0.0).where(sd.notna())
+    avg_up = up.ewm(alpha=1 / n, adjust=False).mean()
+    avg_down = down.ewm(alpha=1 / n, adjust=False).mean()
+    return 100 * avg_up / (avg_up + avg_down)
+
+
+def mass_index(high, low, n=9, total=25):
+    spread = (high - low).ewm(span=n, adjust=False).mean()
+    ratio = spread / spread.ewm(span=n, adjust=False).mean()
+    return ratio.rolling(total).sum()

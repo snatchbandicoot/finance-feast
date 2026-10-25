@@ -77,6 +77,12 @@ MEASURES = {
     "elder-ema-distance": lambda h, l, c, v: ((lambda b, e: (b + e) / 2)(*ind.elder_ray(h, l, c, 13)), c - ind.ema(c, 13)),
     "crsi-rsi14": lambda h, l, c, v: (ind.connors_rsi(c), ind.rsi(c, 14)),
     "crsi-rsi3": lambda h, l, c, v: (ind.connors_rsi(c), ind.rsi(c, 3)),
+    "hv-atr": lambda h, l, c, v: (ind.historical_volatility(c), ind.atr(h, l, c)),
+    "hv-sd-pct": lambda h, l, c, v: (ind.historical_volatility(c), ind.std_dev(c) / c),
+    "sd-atr": lambda h, l, c, v: (ind.std_dev(c), ind.atr(h, l, c)),
+    "cv-atr-level": lambda h, l, c, v: (ind.chaikin_volatility(h, l), ind.atr(h, l, c)),
+    "cv-atr-roc": lambda h, l, c, v: (ind.chaikin_volatility(h, l), 100 * (ind.atr(h, l, c) / ind.atr(h, l, c).shift(10) - 1)),
+    "rvi-rsi": lambda h, l, c, v: (ind.relative_volatility(c), ind.rsi(c, 14)),
     "adx-aroon": lambda h, l, c, v: (ind.adx(h, l, c)[0], ind.aroon(h, l, 25)[2].abs()),
 }
 
@@ -103,6 +109,11 @@ def _id_rmi_rsi(h, l, c, v):
     return (ind.rmi(c, 14, 1) - ind.rsi(c, 14)).abs().max()
 
 
+def _id_stddev_bollinger(h, l, c, v):
+    _, up, lo = ind.bollinger(c, 20, 2)
+    return ((up - lo) - 4 * ind.std_dev(c, 20)).abs().max()
+
+
 def _id_aroon_donchian(h, l, c, v):
     up, down, _ = ind.aroon(h, l, 25)
     valid = up.notna()
@@ -125,6 +136,7 @@ IDENTITIES = {
     "cmo-cutler": _id_cmo_cutler,
     "ppo-macd": _id_ppo_macd,
     "aroon-donchian": _id_aroon_donchian,
+    "stddev-bollinger": _id_stddev_bollinger,
     "rmi-rsi-momentum-1": _id_rmi_rsi,
 }
 
@@ -163,6 +175,11 @@ PAIRS = {
     ("relative-momentum-index", "relative-strength-index"): dict(strength="partial", identity="rmi-rsi-momentum-1", corr="rmi-rsi"),
     ("elder-ray", "exponential-moving-average"): dict(strength="near", identity=None, corr="elder-ema-distance"),
     ("connors-rsi", "relative-strength-index"): dict(strength="partial", identity=None, corr="crsi-rsi3"),
+    ("standard-deviation", "bollinger-bands"): dict(strength="identical", identity="stddev-bollinger", corr=None),
+    ("historical-volatility", "average-true-range"): dict(strength="partial", identity=None, corr="hv-atr"),
+    ("historical-volatility", "standard-deviation"): dict(strength="partial", identity=None, corr="hv-sd-pct"),
+    ("chaikin-volatility", "average-true-range"): dict(strength="partial", identity=None, corr="cv-atr-roc"),
+    ("relative-volatility-index", "relative-strength-index"): dict(strength="partial", identity=None, corr="rvi-rsi"),
     ("ichimoku-cloud", "donchian-channels"): dict(strength="partial", identity="ichimoku-donchian", corr=None),
 }
 
@@ -205,6 +222,12 @@ QUOTES = [
     ("elder-ray", 2, "elder-ema-distance"),
     ("connors-rsi", 2, "crsi-rsi3"),
     ("connors-rsi", 2, "crsi-rsi14"),
+    ("historical-volatility", 2, "hv-atr"),
+    ("historical-volatility", 2, "hv-sd-pct"),
+    ("standard-deviation", 2, "sd-atr"),
+    ("chaikin-volatility", 2, "cv-atr-roc"),
+    ("chaikin-volatility", 2, "cv-atr-level"),
+    ("relative-volatility-index", 2, "rvi-rsi"),
     ("guides/overlaps", 2, "adx-aroon"),
     ("guides/overlaps", 2, "ao-macd"),
     ("guides/overlaps", 2, "trix-macd"),

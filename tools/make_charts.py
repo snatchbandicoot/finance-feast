@@ -742,6 +742,70 @@ def chart_connors(t):
     return fig
 
 
+def chart_hv(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Historical Volatility (20, annualized) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.historical_volatility(C, 20), 30)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(0, x.max() * 1.12)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Historical volatility, in percent per year")
+    return fig
+
+
+def chart_stddev(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Standard Deviation (20) and ATR (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    sd, at = warm(ind.std_dev(C, 20), 30), warm(ind.atr(H, L, C, 14), 30)
+    ax2.plot(sd, color=t["pink"], linewidth=LINE, label="Standard deviation of price (20)", zorder=4)
+    ax2.plot(at, color=t["teal"], linewidth=LINE, label="ATR (14)", zorder=4)
+    ax2.set_ylim(0, max(sd.max(), at.max()) * 1.12)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Both in price units")
+    h, l = ax2.get_legend_handles_labels(); legend(ax2, t, h, l)
+    return fig
+
+
+def chart_chaikin_vol(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Chaikin Volatility (10, 10) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.chaikin_volatility(H, L, 10, 10), 30)
+    hline(ax2, t, 0)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    lim = x.abs().max() * 1.1
+    ax2.set_ylim(-lim, lim)
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Chaikin Volatility, percent change in the smoothed daily range over 10 bars")
+    return fig
+
+
+def chart_rvi(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Relative Volatility Index (10, 14) and RSI (14) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    hline(ax2, t, 50)
+    ax2.plot(warm(ind.rsi(C, 14), 60), color=t["teal"], linewidth=LINE, label="RSI 14", zorder=4)
+    ax2.plot(warm(ind.relative_volatility(C), 60), color=t["pink"], linewidth=LINE, label="RVI (10, 14)", zorder=4)
+    ax2.set_ylim(0, 100); ax2.set_yticks([0, 30, 50, 70, 100])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "RVI and RSI, with the 50 line")
+    h, l = ax2.get_legend_handles_labels()
+    by = dict(zip(l, h)); legend(ax2, t, [by["RVI (10, 14)"], by["RSI 14"]], ["RVI (10, 14)", "RSI 14"])
+    return fig
+
+
+def chart_mass(t):
+    fig, (ax, ax2) = new_fig(t, [3, 1.7], 5.9)
+    heading(fig, t, "Mass Index (9, 25) on synthetic daily data")
+    price_panel(ax, t); hide_x(ax); panel_label(ax, t, "Close")
+    x = warm(ind.mass_index(H, L), 60)
+    for y in (26.5, 27):
+        hline(ax2, t, y)
+    ax2.plot(x, color=t["pink"], linewidth=LINE, zorder=4)
+    ax2.set_ylim(22, 28); ax2.set_yticks([22, 24, 25, 26.5, 27, 28])
+    shade_regimes(ax2, t, labels=False); x_axis(ax2, t); panel_label(ax2, t, "Mass Index, with the 26.5 and 27 lines")
+    return fig
+
+
 CHARTS = {
     "simple-moving-average": chart_sma,
     "exponential-moving-average": chart_ema,
@@ -787,6 +851,11 @@ CHARTS = {
     "relative-momentum-index": chart_rmi,
     "elder-ray": chart_elder,
     "connors-rsi": chart_connors,
+    "historical-volatility": chart_hv,
+    "standard-deviation": chart_stddev,
+    "chaikin-volatility": chart_chaikin_vol,
+    "relative-volatility-index": chart_rvi,
+    "mass-index": chart_mass,
 }
 
 if __name__ == "__main__":
